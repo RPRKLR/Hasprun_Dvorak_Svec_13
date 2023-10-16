@@ -164,27 +164,50 @@ def make_safety_area_for_obstacles(grid):
     print(grid)
     return grid
 
-def filter_path(path_points):
-    last_element_angle = atan2(path_points[0][1] - path_points[1][1], path_points[0][0] - path_points[1][0])
-    filtered_path_points = [path_points[0]]
-    i = 0
-    for pts in path_points:
-        if (i == 0 or i == 1):
-            i = i + 1
-            continue
-        if ((i % 2) == 0):
-            if (i > len(path_points)):
-                break
-            new_angle = atan2(pts[1] - path_points[i][1], pts[0] - path_points[i][0])
-            if(new_angle == last_element_angle):
-                continue
-            else:
-                filtered_path_points.append(pts)
-            last_element_angle = new_angle
-        i = i + 1
-    print(filtered_path_points)
-    return filtered_path_points
+def perpendicular_distance(point, line_start, line_end):
+    # Calculate the perpendicular distance between a point and a line segment
+    if np.array_equal(line_start, line_end):
+        return np.linalg.norm(point - line_start)
     
+    line_length = np.linalg.norm(line_end - line_start)
+    t = np.dot(point - line_start, line_end - line_start) / (line_length ** 2)
+    
+    if t < 0:
+        return np.linalg.norm(point - line_start)
+    if t > 1:
+        return np.linalg.norm(point - line_end)
+    
+    projection = line_start + t * (line_end - line_start)
+    return np.linalg.norm(point - projection)
+
+def douglas_peucker(points, epsilon):
+    if len(points) <= 2:
+        return points
+    
+    # Find the point with the maximum distance
+    max_distance = 0
+    max_index = 0
+    
+    line_start = points[0]
+    line_end = points[-1]
+    
+    for i in range(1, len(points) - 1):
+        distance = perpendicular_distance(points[i], line_start, line_end)
+        if distance > max_distance:
+            max_distance = distance
+            max_index = i
+    
+    if max_distance > epsilon:
+        # Recursively simplify the two sub-paths
+        recursive_start = douglas_peucker(points[:max_index+1], epsilon)
+        recursive_end = douglas_peucker(points[max_index:], epsilon)
+        
+        # Combine the two sub-paths
+        simplified = recursive_start[:-1] + recursive_end
+    else:
+        simplified = [line_start, line_end]
+    
+    return simplified
 
 
 def init():
@@ -222,15 +245,21 @@ def init():
 
     path1 = find_path(start_pos, (50, 35), directions)
 
-    filtered_path = filter_path(path1)
-
     print(filtered_path)
+    points = np.array(path1)
+    simplified_points = douglas_peucker(points, 1.0)
+    print(simplified_points)
 
     grid_with_path1 = draw_path(path1, copy.deepcopy(filtered_data))
 
     grid_with_path1_converted = convert_to_numeric(grid_with_path1)
 
-    write_pgm(grid_with_path1_converted, 'path_output.pgm')
+    write_pgm(grid_with_path1_converted, 'nonfiltered_path_points.pgm')
+    grid_with_path1 = draw_path(simplified_points, copy.deepcopy(filtered_data))
+
+    grid_with_path1_converted = convert_to_numeric(grid_with_path1)
+
+    write_pgm(grid_with_path1_converted, 'filtered_path_output.pgm')
     
 
 
