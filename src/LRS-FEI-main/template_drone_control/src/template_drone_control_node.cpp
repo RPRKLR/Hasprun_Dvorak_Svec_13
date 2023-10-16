@@ -12,10 +12,15 @@ class TemplateDroneControl : public rclcpp::Node
 public:
     TemplateDroneControl() : Node("template_drone_control_node")
     {
+        rmw_qos_profile_t custom_qos = rmw_qos_profile_default;
+        custom_qos.depth = 1;
+        custom_qos.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+        auto qos = rclcpp::QoS(rclcpp::QoSInitialization(custom_qos.history, 1), custom_qos);
         // Set up ROS publishers, subscribers and service clients
         state_sub_ = this->create_subscription<mavros_msgs::msg::State>(
             "mavros/state", 10, std::bind(&TemplateDroneControl::state_cb, this, std::placeholders::_1));
-        local_pos_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("mavros/setpoint_position/local", 10);
+        local_pos_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
+            "/mavros/local_position/pose", qos, std::bind(&TemplateDroneControl::local_pos_cb, this, std::placeholders::_1));
         arming_client_ = this->create_client<mavros_msgs::srv::CommandBool>("mavros/cmd/arming");
         set_mode_client_ = this->create_client<mavros_msgs::srv::SetMode>("mavros/set_mode");
         takeoff_client_ = this->create_client<mavros_msgs::srv::CommandTOL>("mavros/cmd/takeoff");
