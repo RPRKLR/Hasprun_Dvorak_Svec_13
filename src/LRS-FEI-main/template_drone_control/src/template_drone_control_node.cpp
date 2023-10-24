@@ -57,10 +57,40 @@ public:
             RCLCPP_INFO(this->get_logger(), "Waiting for set_mode service...");
         }
         auto result = set_mode_client_->async_send_request(std::make_shared<mavros_msgs::srv::SetMode::Request>(guided_set_mode_req));
-
         // TODO: Test if drone state really changed to GUIDED
-
-        // TODO: Arm and Take Off
+        while(rclcpp::ok() && !current_state_.guided)
+        {
+            rclcpp::Rate r{10};
+            RCLCPP_INFO(this->get_logger(), "Waiting for GUIDED mode request");
+            r.sleep();
+        }
+        RCLCPP_INFO(this->get_logger(), "Mode set to GUIDED");
+        auto arm_set = std::make_shared<mavros_msgs::srv::CommandBool::Request>();
+        arm_set->value = true;
+        while (!arming_client_->wait_for_service(1s))
+        {
+            if (!rclcpp::ok())
+            {
+                RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the set_mode service. Exiting.");
+                return;
+            }
+            RCLCPP_INFO(this->get_logger(), "Waiting for set_mode service...");
+        }
+        
+        auto arm_result = arming_client_->async_send_request(arm_set);
+        RCLCPP_INFO(this->get_logger(), "Request is sent for ARM");
+        while(rclcpp::ok())
+        {
+            std::future_status status = arm_result.wait_for(1s);
+            if(status == std::future_status::ready)
+            {
+                break;
+            }
+            RCLCPP_INFO(this->get_logger(), "Waiting for result");
+        }
+        RCLCPP_INFO(this->get_logger(), "Get result from server, ARM: %d", arm_result.get()->result);
+        
+        
         RCLCPP_INFO(this->get_logger(), "Sending position command");
         // TODO: Implement position controller and mission commands here
     }
@@ -163,6 +193,13 @@ private:
     std::vector<TaskPoint> task_points_;
     nav_msgs::msg::Odometry drone_position_;
     geometry_msgs::msg::PoseStamped drone_goal_pose;
+
+    bool is_on_altitude_{false};
+    bool is_at_goal_{false};
+    bool is_moving_{false};
+    // Soft precision is 10 cm, hard is 5 cm.
+    double precision_{0.1};
+    int position_count_{0};
 
     rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr state_sub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr local_pos_pub_;
