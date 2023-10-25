@@ -89,10 +89,58 @@ public:
             RCLCPP_INFO(this->get_logger(), "Waiting for result");
         }
         RCLCPP_INFO(this->get_logger(), "Get result from server, ARM: %d", arm_result.get()->result);
+
+        // Take off control
+        // Creating service message for the takeoff client
+        auto takeoff_set = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
+        takeoff_set->min_pitch = 0;
+        takeoff_set->yaw = 90;
+        takeoff_set->altitude = 2;
+        // Check if service is responding
+        while(!takeoff_client_->wait_for_service(1s))
+        {
+            if (!rclcpp::ok())
+            {
+                RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the set_mode service. Exiting.");
+                return;
+            }
+            RCLCPP_INFO(this->get_logger(), "Waiting for set_mode service...");
+        }
+
+        auto takeoff_result = takeoff_client_->async_send_request(takeoff_set);
+        RCLCPP_INFO(this->get_logger(), "Request sent for takeoff");
         
+        while(rclcpp::ok())
+        {
+            std::future_status status = takeoff_result.wait_for(1s);
+            if(status == std::future_status::ready)
+            {
+                break;
+            }
+            RCLCPP_INFO(this->get_logger(), "Waiting for result");
+        }
+        RCLCPP_INFO(this->get_logger(), "Get result from server, ARM: %d", takeoff_result.get()->result);
         
-        RCLCPP_INFO(this->get_logger(), "Sending position command");
+        RCLCPP_INFO(this->get_logger(), "Getting position commands from csv file.");
+        getInputFromFile();
+
         // TODO: Implement position controller and mission commands here
+        // Position controller 
+        while(position_count_ < task_points_.size() && rclcpp::ok())
+        {
+            if(task_points_[position_count_].precision == "hard")
+                precision_ = 0.05;
+            else if(task_points_[position_count_].precision == "soft")
+                precision_ = 0.1;
+            geometry_msgs::msg::PoseStamped goal_pos;
+            goal_pos.pose.position.x = task_points_[position_count_].x;
+            goal_pos.pose.position.y = task_points_[position_count_].y;
+            goal_pos.pose.position.z = task_points_[position_count_].z;
+            if(euclidDistance(goal_pos.pose.position.x, goal_pos.pose.position.y, goal_pos.pose.position.z, drone_position_.pose.pose.position.x, drone_position_.pose.pose.position.y, drone_position_.pose.pose.position.z) < precision_)
+            {
+                position_count_++;
+            }
+        }
     }
 
 private:
@@ -184,6 +232,12 @@ private:
 
         RCLCPP_INFO(this->get_logger(), "Current Local Position: %f, %f, %f", current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, current_local_pos_.pose.position.z);
     }
+
+    double euclidDistance(float x1, float y1, float z1, float x2, float y2, float z2)
+    {
+        return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2)); 
+    }
+
     void state_cb(const mavros_msgs::msg::State::SharedPtr msg)
     {
         current_state_ = *msg;
