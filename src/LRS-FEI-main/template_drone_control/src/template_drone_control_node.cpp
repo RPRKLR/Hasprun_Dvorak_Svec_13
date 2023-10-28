@@ -136,15 +136,15 @@ public:
             goal_pos.pose.position.x = task_points_[position_count_].x;
             goal_pos.pose.position.y = task_points_[position_count_].y;
             goal_pos.pose.position.z = task_points_[position_count_].z;
-            if(euclidDistance(goal_pos.pose.position.x, goal_pos.pose.position.y, goal_pos.pose.position.z, drone_position_.pose.pose.position.x, drone_position_.pose.pose.position.y, drone_position_.pose.pose.position.z) < precision_)
-            {
-                position_count_++;
-            }
+            
+
             if(task_points_[position_count_].task == "landtakeoff")
             {
                 /// TODO: Implement land and takeoff function; 
             }
 
+            // If the task is take off, and the drone is not in motion, and also not at altitude, it will 
+            // send the service message to take off to the given task altitude level.
             if(task_points_[position_count_].task == "takeoff" && !is_moving_ && !is_on_altitude_)
             {
                 is_moving_ = true;
@@ -152,6 +152,8 @@ public:
                 takeoff_srv->altitude = task_points_[position_count_].z;
                 takeOffDrone(takeoff_srv);
             }
+
+            // Set the robot goal position for the actual goal position. 
             if(!is_on_altitude_ && !is_moving_)
             {
                 is_moving_ = true;
@@ -159,8 +161,62 @@ public:
                 local_pos_pub_->publish(drone_goal_pose);
             }
 
-            
-        }
+            // Check that if the drone is at altitude, if true the is_on_altitude variable is set as true, and we can start 
+            // the navigation toward the goal position.
+            if(!is_on_altitude_ && is_moving_ && sqrt(pow(drone_position_.pose.pose.position.z - drone_goal_pose.pose.position.z, 2)) < precision_)
+            {
+                is_moving_ = false;
+                is_on_altitude_ = true;
+                RCLCPP_INFO(this->get_logger(), "Drone is at altitude: %f", drone_position_.pose.pose.position.z);
+            }
+
+            // If the drone is on altitude level, but not at the goal position first, we will rotate the drone towards the goal position
+            // After the drone is facing the goal position, the drone will fly forward to the goal position.
+            if(!is_moving_ && is_on_altitude_ && !is_at_goal_)
+            {
+                is_moving_ = true;
+                setDroneOrientation(task_points_[position_count_].x, task_points_[position_count_].y);
+                local_pos_pub_->publish(drone_goal_pose);
+                sleep(3);
+                setDroneGoalDestination(task_points_[position_count_].x, task_points_[position_count_].y, task_points_[position_count_].z);
+                local_pos_pub_->publish(drone_goal_pose);
+            }
+
+            // Check if the robot reached the given goal position with the defined precision
+            if(is_moving_ && euclidDistance(drone_position_.pose.pose.position.x, drone_position_.pose.pose.position.y,drone_position_.pose.pose.position.z,  drone_goal_pose.pose.position.x, drone_goal_pose.pose.position.y, drone_goal_pose.pose.position.z) < precision_ && is_on_altitude_ && !is_at_goal_)
+            {
+                is_moving_ = false;
+                is_at_goal_ = true;
+                RCLCPP_INFO(this->get_logger(), "Drone is at position x: %f y: %f z: %f", drone_position_.pose.pose.position.x, drone_position_.pose.pose.position.y, drone_position_.pose.pose.position.z);
+                RCLCPP_INFO(this->get_logger(), "Reached with precision: %f Distance from goal position: %f", precision_, euclidDistance(drone_position_.pose.pose.position.x, drone_position_.pose.pose.position.y,drone_position_.pose.pose.position.z,  drone_goal_pose.pose.position.x, drone_goal_pose.pose.position.y, drone_goal_pose.pose.position.z));
+            }
+
+            // if the drone is not moving, and the drone is at goal, we initiate the landing protocol.
+            if(task_points_[position_count_].task == "land" && !is_moving_ && is_at_goal_)
+            {
+                is_moving_ = true;
+                std::shared_ptr<mavros_msgs::srv::CommandTOL::Request> land_srv;
+                land_srv->altitude = 0.0;
+                landDrone(land_srv);
+            }
+
+            // Stop the drone if the current state is not armed, and the task is land
+            if(task_points_[position_count_].task == "land" && is_moving_ && !current_state_.armed)
+            {
+                is_moving_ = false;
+            }
+
+            // if the drone is at the goal position, and it is not moving, we reset the boolean values, and go for the next goal point position.
+            if(is_at_goal_ && !is_moving_)
+            {
+                is_on_altitude_ = false;
+                is_at_goal_ = false;
+                position_count_++;
+                RCLCPP_INFO(this->get_logger(), "Task done, Moving to next goal position");
+            }
+        }   
+        RCLCPP_INFO(this->get_logger(), "Went trough all goal position, shuting down");
+        rclcpp::shutdown();
     
     }
 
