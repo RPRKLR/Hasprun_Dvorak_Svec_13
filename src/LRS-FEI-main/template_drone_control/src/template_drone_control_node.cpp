@@ -139,8 +139,8 @@ public:
             
 
             if(task_points_[position_count_].task == "landtakeoff")
-            {
-                /// TODO: Implement land and takeoff function; 
+            { 
+                landTakeOff(task_points_[position_count_].z);
             }
 
             // If the task is take off, and the drone is not in motion, and also not at altitude, it will 
@@ -352,6 +352,15 @@ private:
             RCLCPP_INFO(this->get_logger(), "Takeoff failed");
         }
 
+    }
+
+    void landTakeOff(float altitude)
+    {
+        std::shared_ptr<mavros_msgs::srv::CommandTOL::Request> srv;
+        landDrone(srv);
+        srv->altitude = altitude;
+        takeOffDrone(srv);
+        position_count_++;
     }
 
     std::vector<TaskPoint> task_points_;
