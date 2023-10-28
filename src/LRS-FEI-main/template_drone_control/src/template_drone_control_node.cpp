@@ -77,18 +77,11 @@ public:
             RCLCPP_INFO(this->get_logger(), "Waiting for set_mode service...");
         }
         
-        auto arm_result = arming_client_->async_send_request(arm_set);
+        auto arm_future = arming_client_->async_send_request(arm_set);
         RCLCPP_INFO(this->get_logger(), "Request is sent for ARM");
-        while(rclcpp::ok())
-        {
-            std::future_status status = arm_result.wait_for(1s);
-            if(status == std::future_status::ready)
-            {
-                break;
-            }
-            RCLCPP_INFO(this->get_logger(), "Waiting for result");
-        }
-        RCLCPP_INFO(this->get_logger(), "Get result from server, ARM: %d", arm_result.get()->result);
+        RCLCPP_INFO(this->get_logger(), "Waiting for result");
+        auto arm_result = arm_future.get();
+        RCLCPP_INFO(this->get_logger(), "Get result from server, ARM: %d", arm_result->result);
 
         // Take off control
         // Creating service message for the takeoff client
