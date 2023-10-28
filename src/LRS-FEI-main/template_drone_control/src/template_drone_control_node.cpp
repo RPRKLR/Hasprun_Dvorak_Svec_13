@@ -140,7 +140,28 @@ public:
             {
                 position_count_++;
             }
+            if(task_points_[position_count_].task == "landtakeoff")
+            {
+                /// TODO: Implement land and takeoff function; 
+            }
+
+            if(task_points_[position_count_].task == "takeoff" && !is_moving_ && !is_on_altitude_)
+            {
+                is_moving_ = true;
+                std::shared_ptr<mavros_msgs::srv::CommandTOL::Request> takeoff_srv;
+                takeoff_srv->altitude = task_points_[position_count_].z;
+                takeOffDrone(takeoff_srv);
+            }
+            if(!is_on_altitude_ && !is_moving_)
+            {
+                is_moving_ = true;
+                setDroneGoalDestination(task_points_[position_count_].x, task_points_[position_count_].y, task_points_[position_count_].z);
+                local_pos_pub_->publish(drone_goal_pose);
+            }
+
+            
         }
+    
     }
 
 private:
@@ -242,6 +263,39 @@ private:
     {
         current_state_ = *msg;
         RCLCPP_INFO(this->get_logger(), "Current State: %s", current_state_.mode.c_str());
+    }
+
+    void landDrone(std::shared_ptr<mavros_msgs::srv::CommandTOL::Request> srv)
+    {
+
+        auto land_future = takeoff_client_->async_send_request(srv);
+        auto result = land_future.get();
+        
+        if(result->success)
+        {
+            RCLCPP_INFO(this->get_logger(), "Land sent");
+        }
+        else 
+        {
+            RCLCPP_INFO(this->get_logger(), "Land failed");
+            rclcpp::shutdown();
+        }
+    }
+
+    void takeOffDrone(std::shared_ptr<mavros_msgs::srv::CommandTOL::Request> srv)
+    {
+        auto takeoff_future = takeoff_client_->async_send_request(srv);
+        auto result = takeoff_future.get();
+        
+        if(result->success)
+        {
+            RCLCPP_INFO(this->get_logger(), "Takeoff sent to altitude: %f", srv->altitude);
+        }
+        else 
+        {
+            RCLCPP_INFO(this->get_logger(), "Takeoff failed");
+        }
+
     }
 
     std::vector<TaskPoint> task_points_;
