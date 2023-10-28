@@ -222,6 +222,10 @@ public:
 
 private:
 
+    /**
+     * @brief Get the path positions form the commands file.
+     * 
+     */
     void getInputFromFile()
     {
         std::fstream file;
@@ -257,6 +261,18 @@ private:
         }
     }
 
+    /// TODO: Implement function to deal with the maps and the path findings
+    void createGoalPointsBasedOnAltitudeAndMaps(std::string map_name, float altitude)
+    {
+
+    }
+
+    /**
+     * @brief Set the drone orientation
+     * 
+     * @param x x coordinate of the goal position.
+     * @param y y coordinate of the goal position.
+     */
     void setDroneOrientation(float &x, float &y)
     {
         // Delta x
@@ -289,6 +305,13 @@ private:
         RCLCPP_INFO(this->get_logger(), "Orientation(rad): %f", yaw);
     }
 
+    /**
+     * @brief Set the goal position to navigate
+     * 
+     * @param x X coordinate of the goal position
+     * @param y Y coordinate of the goal position
+     * @param z Z coordinate of the goal position
+     */
     void setDroneGoalDestination(float &x, float &y, float &z)
     {
         drone_goal_pose.pose.position.x = x;
@@ -310,6 +333,17 @@ private:
         RCLCPP_INFO(this->get_logger(), "Current Local Position: %f, %f, %f", current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, current_local_pos_.pose.position.z);
     }
 
+    /**
+     * @brief Calculate the euclid distance from one 3D point to another 3D point
+     * 
+     * @param x1 First x coordinate
+     * @param y1 First y coordinate
+     * @param z1 First z coordinate
+     * @param x2 Second x coordinate
+     * @param y2 Second y coordinate
+     * @param z2 Second z coordinate
+     * @return double Returns the distance between two points.
+     */
     double euclidDistance(float x1, float y1, float z1, float x2, float y2, float z2)
     {
         return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2)); 
@@ -321,6 +355,12 @@ private:
         RCLCPP_INFO(this->get_logger(), "Current State: %s", current_state_.mode.c_str());
     }
 
+    /**
+     * @brief Sends the request for the takeoff client, waits until the server sends back the result.
+     * if the landing failed, the node shuts down.
+     * 
+     * @param srv 
+     */
     void landDrone(std::shared_ptr<mavros_msgs::srv::CommandTOL::Request> srv)
     {
 
@@ -338,6 +378,12 @@ private:
         }
     }
 
+    /**
+     * @brief Sends the request for the takeoff server, gets the result from the future.
+     * If the result is successful the drone will fly to the given altitude, else it will do nothing.
+     * 
+     * @param srv 
+     */
     void takeOffDrone(std::shared_ptr<mavros_msgs::srv::CommandTOL::Request> srv)
     {
         auto takeoff_future = takeoff_client_->async_send_request(srv);
@@ -354,6 +400,11 @@ private:
 
     }
 
+    /**
+     * @brief Land the drone, and after the landing, the drone will take off to the given altitude.
+     * 
+     * @param altitude 
+     */
     void landTakeOff(float altitude)
     {
         std::shared_ptr<mavros_msgs::srv::CommandTOL::Request> srv;
