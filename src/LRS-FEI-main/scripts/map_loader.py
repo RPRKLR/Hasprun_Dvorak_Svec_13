@@ -119,7 +119,6 @@ def find_path(start, end, came_from):
 
     current = end
     while current != start:
-        print("CURRENT: " + str(current))
         current = came_from[current]
         path.append(current)
 
