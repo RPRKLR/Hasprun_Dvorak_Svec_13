@@ -117,6 +117,7 @@ public:
         
         RCLCPP_INFO(this->get_logger(), "Getting position commands from csv file.");
         getInputFromFile();
+        createGoalPointsBasedOnAltitudeAndMaps("map_");
 
         // TODO: Implement position controller and mission commands here
         // Position controller 
@@ -280,27 +281,27 @@ private:
     }
 
     /// TODO: Implement function to deal with the maps and the path findings
-    void createGoalPointsBasedOnAltitudeAndMaps(std::string map_name, float altitude)
+    void createGoalPointsBasedOnAltitudeAndMaps(std::string map_name)
     {
         geometry_msgs::msg::PoseStamped tmp_pos;
         double precision{0.05};
         tmp_pos.pose.position.x = std::round(drone_position_.pose.pose.position.x / precision) * precision;
         tmp_pos.pose.position.y = std::round(drone_position_.pose.pose.position.y / precision) * precision;
         tmp_pos.pose.position.z = drone_position_.pose.pose.position.z;
-        std::vector<float> x, y;
-        for(auto task_point : task_points_)
+        std::vector<float> x_vec, y_vec;
+        for(int j = 0; j < task_points_.size(); j++)
         {
             float x,y;
-            x = std::round(task_point.x[0] / precision) * precision;
-            y = std::round(task_point.y[0] / precision) * precision;
+            x = std::round(task_points_[j].x[0] / precision) * precision;
+            y = std::round(task_points_[j].y[0] / precision) * precision;
             char command[1024];
             snprintf(command, sizeof(command), "python3 %s %s %s %s %s %s %s",
-                                                map_name,
-                                                std::to_string(altitude*100),
-                                                std::to_string((int)(tmp_pos.pose.position.x / precision)), 
-                                                std::to_string((int)(tmp_pos.pose.position.y / precision)),
-                                                std::to_string((int)(x / precision)),
-                                                std::to_string((int)(y / precision)));
+                                                map_name.c_str(),
+                                                std::to_string(tmp_pos.pose.position.z*100).c_str(),
+                                                std::to_string((int)(tmp_pos.pose.position.x / precision)).c_str(), 
+                                                std::to_string((int)(tmp_pos.pose.position.y / precision)).c_str(),
+                                                std::to_string((int)(x / precision)).c_str(),
+                                                std::to_string((int)(y / precision)).c_str());
 
             int return_code = system(command);
 
@@ -308,9 +309,35 @@ private:
                 RCLCPP_INFO(this->get_logger(), "Python script executed successfully");
             else 
                 RCLCPP_ERROR(this->get_logger(), "Error executing the python script");
-        }
+            std::fstream file;
+            file.open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/simplified_points.csv", std::fstream::in);
+            std::string line;
+            std::vector<float> tmp_vec;
+            while (getline(file, line))
+            {
+                float tmp_val;
+                std::istringstream line_stream(line);
+                std::string token;
 
-        /// TODO: implement reading the data from the csv files.
+                std::getline(line_stream, token, ',');
+                std::stringstream ss(token);
+                ss >> tmp_val;
+                x_vec.push_back(tmp_val * precision);
+
+
+                std::getline(line_stream, token, ',');
+                ss.clear();
+                ss << token;
+                ss >> tmp_val;
+                y_vec.push_back(tmp_val * precision);
+
+            }
+            task_points_[j].x = x_vec;
+            task_points_[j].y = y_vec;
+            tmp_pos.pose.position.x = task_points_[j].x[task_points_[j].x.size() - 1];
+            tmp_pos.pose.position.y = task_points_[j].y[task_points_[j].y.size() - 1];
+            tmp_pos.pose.position.z = task_points_[j].z;
+        }
 
     }
 

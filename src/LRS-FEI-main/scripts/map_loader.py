@@ -214,9 +214,6 @@ def douglas_peucker(points, epsilon):
 def save_points_to_csv(points, csv_name):
     with open(csv_name, 'w', newline='') as file:
         writer = csv.writer(file)
-        field = ["x", "y"]
-
-        writer.writerow(field)
         for point in points:
             writer.writerow(point)
 
