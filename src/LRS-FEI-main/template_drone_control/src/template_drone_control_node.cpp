@@ -243,7 +243,8 @@ private:
     void getInputFromFile()
     {
         std::fstream file;
-        file.open("path/to/commands", std::fstream::in);
+        // file.open("path/to/commands", std::fstream::in);
+        file.open("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/resources/points_example.csv", std::fstream::in);
         std::string line;
 
         while (getline(file, line))
@@ -300,13 +301,14 @@ private:
             x = std::round(task_points_[j].x[0] / precision) * precision;
             y = std::round(task_points_[j].y[0] / precision) * precision;
             char command[1024];
-            snprintf(command, sizeof(command), "python3 %s %s %s %s %s %s",
+            snprintf(command, sizeof(command), "python3 %s %s %s %s %s %s %s",
                                                 map_name.c_str(),
                                                 std::to_string(tmp_pos.pose.position.z*100).c_str(),
                                                 std::to_string((int)(tmp_pos.pose.position.x / precision)).c_str(), 
                                                 std::to_string((int)(tmp_pos.pose.position.y / precision)).c_str(),
                                                 std::to_string((int)(x / precision)).c_str(),
-                                                std::to_string((int)(y / precision)).c_str());
+                                                std::to_string((int)(y / precision)).c_str(),
+                                                "simplified_points.csv");
 
             int return_code = system(command);
 
