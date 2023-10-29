@@ -9,6 +9,7 @@
 #include <string>
 #include <nav_msgs/msg/odometry.hpp>
 #include <cstdlib>
+// #include <unistd.h>
 
 using namespace std::chrono_literals;
 
@@ -174,7 +175,9 @@ public:
                     is_moving_ = true;
                     setDroneOrientation(task_points_[position_count_].x[filtered_position_count_], task_points_[position_count_].y[filtered_position_count_]);
                     local_pos_pub_->publish(drone_goal_pose);
-                    sleep(3);
+                    // sleep(3);
+                    // because sleep(3) does not work in unix
+                    std::this_thread::sleep_for(3000ms);
                     setDroneGoalDestination(task_points_[position_count_].x[filtered_position_count_], task_points_[position_count_].y[filtered_position_count_], task_points_[position_count_].z);
                     local_pos_pub_->publish(drone_goal_pose);
                 }
@@ -289,13 +292,15 @@ private:
         tmp_pos.pose.position.y = std::round(drone_position_.pose.pose.position.y / precision) * precision;
         tmp_pos.pose.position.z = drone_position_.pose.pose.position.z;
         std::vector<float> x_vec, y_vec;
-        for(int j = 0; j < task_points_.size(); j++)
+        // for(int j = 0; j < task_points_.size(); j++)
+        // std::size_t because otherwise there was a comparison between int and unsigned int
+        for(std::size_t j = 0; j < task_points_.size(); j++)
         {
             float x,y;
             x = std::round(task_points_[j].x[0] / precision) * precision;
             y = std::round(task_points_[j].y[0] / precision) * precision;
             char command[1024];
-            snprintf(command, sizeof(command), "python3 %s %s %s %s %s %s %s",
+            snprintf(command, sizeof(command), "python3 %s %s %s %s %s %s",
                                                 map_name.c_str(),
                                                 std::to_string(tmp_pos.pose.position.z*100).c_str(),
                                                 std::to_string((int)(tmp_pos.pose.position.x / precision)).c_str(), 
@@ -491,8 +496,11 @@ private:
     bool is_moving_{false};
     // Soft precision is 10 cm, hard is 5 cm.
     double precision_{0.1};
-    int position_count_{0};
-    int filtered_position_count_{0};
+    // int position_count_{0};
+    // std::size_t because otherwise there was a comparison between int and unsigned int
+    std::size_t position_count_{0};
+    // int filtered_position_count_{0};
+    std::size_t filtered_position_count_{0};
 
     rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr state_sub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr local_pos_pub_;
