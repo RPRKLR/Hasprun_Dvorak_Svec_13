@@ -210,8 +210,8 @@ def douglas_peucker(points, epsilon):
     return simplified
 
 
-def init():
-    with open("map_225.pgm", "rb") as file:
+def init(map_name, altitude, start_x, start_y, end_x, end_y):
+    with open(map_name + str(altitude) + ".pgm", "rb") as file:
         byte_data = file.read()
         data = byte_data.decode("utf-8")
 
@@ -240,12 +240,12 @@ def init():
     filtered_data = [sublist for sublist in pixel_data if sublist]    
 
 
-    start_pos = (250, 300)
+    start_pos = (start_x, start_y)
+    end_pos = (end_x, end_y)
     directions = scan_grid(filtered_data, start_pos)
 
-    path1 = find_path(start_pos, (50, 35), directions)
+    path1 = find_path(start_pos, end_pos, directions)
 
-    print(filtered_path)
     points = np.array(path1)
     simplified_points = douglas_peucker(points, 1.0)
     print(simplified_points)
@@ -267,4 +267,4 @@ def init():
 
 
 if __name__ == "__main__":
-    init()
+    init(map_name="map_", altitude=125, start_x=10, start_y=10, end_x=30, end_y=30)

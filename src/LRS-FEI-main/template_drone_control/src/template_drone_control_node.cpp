@@ -227,29 +227,37 @@ private:
 
         while (getline(file, line))
         {
+            // Getting the task point x value 
             std::istringstream line_stream(line);
             std::string tmp_container;
             TaskPoint tmp_task_point;
             getline(line_stream, tmp_container, ',');
             std::stringstream ss(tmp_container);
             ss >> tmp_task_point.x;
-            
-            // getline(line_stream, tmp_container, ',');
-            // std::stringstream ss(tmp_container);
-            // ss >> tmp_task_point.y;
+            // Getting the task point y value
+            ss.clear();
+            getline(line_stream, tmp_container, ',');
+            ss << tmp_container;
+            ss >> tmp_task_point.y;
 
-            // getline(line_stream, tmp_container, ',');
-            // std::stringstream ss(tmp_container);
-            // ss >> tmp_task_point.z;
+            // Getting the task point z value
+            ss.clear();
+            getline(line_stream, tmp_container, ',');
+            ss << tmp_container;
+            ss >> tmp_task_point.z;
 
-            // getline(line_stream, tmp_container, ',');
-            // std::stringstream ss(tmp_container);
-            // ss >> tmp_task_point.precision;
+            // Getting the task precision
+            ss.clear();
+            getline(line_stream, tmp_container, ',');
+            ss << tmp_container;
+            ss >> tmp_task_point.precision;
 
-            // getline(line_stream, tmp_container, ',');
-            // std::stringstream ss(tmp_container);
-            // ss >> tmp_task_point.task;
-        
+            // Getting the task 
+            ss.clear();
+            getline(line_stream, tmp_container, ',');
+            ss << tmp_container;
+            ss >> tmp_task_point.task;
+
             task_points_.push_back(tmp_task_point);
         }
     }
@@ -257,7 +265,14 @@ private:
     /// TODO: Implement function to deal with the maps and the path findings
     void createGoalPointsBasedOnAltitudeAndMaps(std::string map_name, float altitude)
     {
-
+        geometry_msgs::msg::PoseStamped tmp_pos;
+        tmp_pos.pose.position.x = drone_position_.pose.pose.position.x;
+        tmp_pos.pose.position.y = drone_position_.pose.pose.position.x;
+        tmp_pos.pose.position.z = drone_position_.pose.pose.position.z;
+        for(auto task_point : task_points_)
+        {
+            
+        }
     }
 
     /**
