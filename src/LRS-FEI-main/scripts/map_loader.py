@@ -7,6 +7,7 @@ import numpy as np
 from PIL import Image
 import numpy as np
 from math import atan2
+import csv
 
 
 START_COL = "S"
@@ -154,14 +155,14 @@ def make_safety_area_for_obstacles(grid):
                             continue
                         else:
                             grid[idx_col + i][idx_row + j] = 1
-                            print(grid[idx_col + i][idx_row + j])
-    print(grid)
+                            # print(grid[idx_col + i][idx_row + j])
+    # print(grid)
 
     for idx_col, col in enumerate(grid):
         for idx_row, row in enumerate(col):
             if(grid[idx_col][idx_row] == 1):
                 grid[idx_col][idx_row] = 0
-    print(grid)
+    # print(grid)
     return grid
 
 def perpendicular_distance(point, line_start, line_end):
@@ -210,7 +211,17 @@ def douglas_peucker(points, epsilon):
     return simplified
 
 
-def init(map_name, altitude, start_x, start_y, end_x, end_y):
+def save_points_to_csv(points, csv_name):
+    with open(csv_name, 'w', newline='') as file:
+        writer = csv.writer(file)
+        field = ["x", "y"]
+
+        writer.writerow(field)
+        for point in points:
+            writer.writerow(point)
+
+
+def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
     with open(map_name + str(altitude) + ".pgm", "rb") as file:
         byte_data = file.read()
         data = byte_data.decode("utf-8")
@@ -225,7 +236,7 @@ def init(map_name, altitude, start_x, start_y, end_x, end_y):
 
 
     extrapolated_obstacle_grid =  make_safety_area_for_obstacles(filtered_data_pgm)
-    print(extrapolated_obstacle_grid)
+    # print(extrapolated_obstacle_grid)
 
     write_pgm(extrapolated_obstacle_grid, 'extrapolated.pgm')
 
@@ -260,11 +271,10 @@ def init(map_name, altitude, start_x, start_y, end_x, end_y):
     grid_with_path1_converted = convert_to_numeric(grid_with_path1)
 
     write_pgm(grid_with_path1_converted, 'filtered_path_output.pgm')
-    
 
-
+    save_points_to_csv(simplified_points, csv_name)
 
 
 
 if __name__ == "__main__":
-    init(map_name="map_", altitude=125, start_x=250, start_y=300, end_x=50, end_y=35)
+    init(map_name="map_", altitude=125, start_x=250, start_y=300, end_x=50, end_y=35, csv_name="simplified_points.csv")
