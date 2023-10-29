@@ -119,6 +119,7 @@ def find_path(start, end, came_from):
 
     current = end
     while current != start:
+        print("CURRENT: " + str(current))
         current = came_from[current]
         path.append(current)
 
@@ -267,4 +268,4 @@ def init(map_name, altitude, start_x, start_y, end_x, end_y):
 
 
 if __name__ == "__main__":
-    init(map_name="map_", altitude=125, start_x=10, start_y=10, end_x=30, end_y=30)
+    init(map_name="map_", altitude=125, start_x=250, start_y=300, end_x=50, end_y=35)
