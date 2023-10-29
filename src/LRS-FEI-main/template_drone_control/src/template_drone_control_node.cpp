@@ -8,6 +8,7 @@
 #include <fstream>
 #include <string>
 #include <nav_msgs/msg/odometry.hpp>
+#include <cstdlib>
 
 using namespace std::chrono_literals;
 
@@ -282,13 +283,35 @@ private:
     void createGoalPointsBasedOnAltitudeAndMaps(std::string map_name, float altitude)
     {
         geometry_msgs::msg::PoseStamped tmp_pos;
-        tmp_pos.pose.position.x = drone_position_.pose.pose.position.x;
-        tmp_pos.pose.position.y = drone_position_.pose.pose.position.x;
+        double precision{0.05};
+        tmp_pos.pose.position.x = std::round(drone_position_.pose.pose.position.x / precision) * precision;
+        tmp_pos.pose.position.y = std::round(drone_position_.pose.pose.position.y / precision) * precision;
         tmp_pos.pose.position.z = drone_position_.pose.pose.position.z;
+        std::vector<float> x, y;
         for(auto task_point : task_points_)
         {
-            
+            float x,y;
+            x = std::round(task_point.x[0] / precision) * precision;
+            y = std::round(task_point.y[0] / precision) * precision;
+            char command[1024];
+            snprintf(command, sizeof(command), "python3 %s %s %s %s %s %s %s",
+                                                map_name,
+                                                std::to_string(altitude*100),
+                                                std::to_string((int)(tmp_pos.pose.position.x / precision)), 
+                                                std::to_string((int)(tmp_pos.pose.position.y / precision)),
+                                                std::to_string((int)(x / precision)),
+                                                std::to_string((int)(y / precision)));
+
+            int return_code = system(command);
+
+            if(return_code == 0)
+                RCLCPP_INFO(this->get_logger(), "Python script executed successfully");
+            else 
+                RCLCPP_ERROR(this->get_logger(), "Error executing the python script");
         }
+
+        /// TODO: implement reading the data from the csv files.
+
     }
 
     /**
@@ -345,16 +368,9 @@ private:
 
     void local_pos_cb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
     {
-        geometry_msgs::msg::PoseStamped current_local_pos_ = *msg;
-
-        // To obtain the position of the drone use this data fields withing the message, please note, that this is the local position of the drone in the NED frame so it is different to the map frame
-        // current_local_pos_.pose.position.x
-        // current_local_pos_.pose.position.y
-        // current_local_pos_.pose.position.z
-        // you can do the same for orientation, but you will not need it for this seminar
-
-
-        RCLCPP_INFO(this->get_logger(), "Current Local Position: %f, %f, %f", current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, current_local_pos_.pose.position.z);
+        drone_position_.pose.pose.position.x = msg->pose.position.x;
+        drone_position_.pose.pose.position.y = msg->pose.position.y;
+        drone_position_.pose.pose.position.z = msg->pose.position.z;
     }
 
     /**
