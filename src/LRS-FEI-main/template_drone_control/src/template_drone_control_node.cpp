@@ -157,10 +157,6 @@ public:
                     is_moving_ = true;
                     auto takeoff_srv = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
                     RCLCPP_INFO(this->get_logger(), "AAAA %f", task_points_[position_count_].z);
-        //                     takeoff_set->min_pitch = 0;
-        // takeoff_set->yaw = 90;
-        // takeoff_set->altitude = 2;
-        //             takeoff_srv
                     takeoff_srv->altitude = task_points_[position_count_].z;
                     RCLCPP_INFO(this->get_logger(), "BBBBB");
                     takeOffDrone(takeoff_srv);
@@ -212,7 +208,7 @@ public:
                 if(task_points_[position_count_].task == "land" && !is_moving_ && is_at_goal_)
                 {
                     is_moving_ = true;
-                    std::shared_ptr<mavros_msgs::srv::CommandTOL::Request> land_srv;
+                    auto land_srv = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
                     land_srv->altitude = 0.0;
                     landDrone(land_srv);
                 }
@@ -477,9 +473,8 @@ private:
     {
 
         auto land_future = takeoff_client_->async_send_request(srv);
-        auto result = land_future.get();
         
-        if(result->success)
+        if(rclcpp::spin_until_future_complete(this->get_node_base_interface(), land_future) == rclcpp::FutureReturnCode::SUCCESS)
         {
             RCLCPP_INFO(this->get_logger(), "Land sent");
         }
@@ -499,9 +494,8 @@ private:
     void takeOffDrone(std::shared_ptr<mavros_msgs::srv::CommandTOL::Request> srv)
     {
         auto takeoff_future = takeoff_client_->async_send_request(srv);
-        auto result = takeoff_future.get();
         
-        if(result->success)
+        if(rclcpp::spin_until_future_complete(this->get_node_base_interface(), takeoff_future) == rclcpp::FutureReturnCode::SUCCESS)
         {
             RCLCPP_INFO(this->get_logger(), "Takeoff sent to altitude: %f", srv->altitude);
         }
