@@ -252,35 +252,34 @@ private:
     {
         std::fstream file;
         // file.open("path/to/commands", std::fstream::in);
-        file.open("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/resources/points_example.csv", std::fstream::in);
+        file.open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/resources/points_example.csv", std::fstream::in);
         std::string line;
 
         while (getline(file, line))
         {
-            float temp_float;
+            float temp_x, temp_y, temp_z;
             // Getting the task point x value 
             std::istringstream line_stream(line);
             std::string tmp_container;
             TaskPoint tmp_task_point;
+            std::stringstream ss;
             getline(line_stream, tmp_container, ',');
-            std::stringstream ss(tmp_container);
-            ss >> temp_float;
+            // std::stringstream ss(tmp_container);
+            temp_x = std::stof(tmp_container);
             // ss >> tmp_task_point.x[0];
-            tmp_task_point.x.push_back(temp_float);
+            tmp_task_point.x.push_back(temp_x);
+
             // Getting the task point y value
-            ss.clear();
             getline(line_stream, tmp_container, ',');
-            ss << tmp_container;
-            // ss >> tmp_task_point.y[0];
-            ss >> temp_float;
-            tmp_task_point.y.push_back(temp_float);
+            temp_y = std::stof(tmp_container);
+            
+            tmp_task_point.y.push_back(temp_y);
 
             // Getting the task point z value
-            ss.clear();
+
             getline(line_stream, tmp_container, ',');
-            ss << tmp_container;
-            ss >> temp_float;
-            tmp_task_point.z = temp_float;
+            temp_y = std::stof(tmp_container);
+            tmp_task_point.z = temp_y;
 
             // Getting the task precision
             std::string temp_str;
@@ -289,6 +288,7 @@ private:
             ss << tmp_container;
             ss >> temp_str;
             tmp_task_point.precision = temp_str;
+
 
             // Getting the task 
             ss.clear();
@@ -318,7 +318,7 @@ private:
             x = std::round(task_points_[j].x[0] / precision) * precision;
             y = std::round(task_points_[j].y[0] / precision) * precision;
             char command[1024];
-            snprintf(command, sizeof(command), "python3 /home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/map_loader.py %s %s %s %s %s %s %s",
+            snprintf(command, sizeof(command), "python3 /home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/map_loader.py %s %s %s %s %s %s %s",
                                                 map_name.c_str(),
                                                 std::to_string(std::round(tmp_pos.pose.position.z*100)).c_str(),
                                                 std::to_string((int)(tmp_pos.pose.position.x / precision)).c_str(), 
