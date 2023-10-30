@@ -96,32 +96,32 @@ public:
         
         // Take off control
         // Creating service message for the takeoff client
-        auto takeoff_set = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
-        takeoff_set->min_pitch = 0;
-        takeoff_set->yaw = 90;
-        takeoff_set->altitude = 2;
-        // Check if service is responding
-        while(!takeoff_client_->wait_for_service(1s))
-        {
-            if (!rclcpp::ok())
-            {
-                RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the set_mode service. Exiting.");
-                return;
-            }
-            RCLCPP_INFO(this->get_logger(), "Waiting for set_mode service...");
-        }
+        // auto takeoff_set = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
+        // takeoff_set->min_pitch = 0;
+        // takeoff_set->yaw = 90;
+        // takeoff_set->altitude = 2;
+        // // Check if service is responding
+        // while(!takeoff_client_->wait_for_service(1s))
+        // {
+        //     if (!rclcpp::ok())
+        //     {
+        //         RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the set_mode service. Exiting.");
+        //         return;
+        //     }
+        //     RCLCPP_INFO(this->get_logger(), "Waiting for set_mode service...");
+        // }
 
-        auto takeoff_result = takeoff_client_->async_send_request(takeoff_set);
-        RCLCPP_INFO(this->get_logger(), "Request sent for takeoff");
+        // auto takeoff_result = takeoff_client_->async_send_request(takeoff_set);
+        // RCLCPP_INFO(this->get_logger(), "Request sent for takeoff");
         
-        if(rclcpp::spin_until_future_complete(shared_from_this(), takeoff_result) == rclcpp::FutureReturnCode::SUCCESS)
-        {
-            RCLCPP_INFO(this->get_logger(), "Got request result: %d", takeoff_result.get()->result);
-        }
-        else 
-        {
-            RCLCPP_INFO(this->get_logger(), "Failed to call service for takeoff");
-        }
+        // if(rclcpp::spin_until_future_complete(shared_from_this(), takeoff_result) == rclcpp::FutureReturnCode::SUCCESS)
+        // {
+        //     RCLCPP_INFO(this->get_logger(), "Got request result: %d", takeoff_result.get()->result);
+        // }
+        // else 
+        // {
+        //     RCLCPP_INFO(this->get_logger(), "Failed to call service for takeoff");
+        // }
 
         RCLCPP_INFO(this->get_logger(), "Getting position commands from csv file.");
         getInputFromFile();
@@ -278,8 +278,8 @@ private:
             // Getting the task point z value
 
             getline(line_stream, tmp_container, ',');
-            temp_y = std::stof(tmp_container);
-            tmp_task_point.z = temp_y;
+            temp_z = std::stof(tmp_container);
+            tmp_task_point.z = temp_z;
 
             // Getting the task precision
             std::string temp_str;
@@ -306,8 +306,8 @@ private:
     {
         geometry_msgs::msg::PoseStamped tmp_pos;
         double precision{0.05};
-        tmp_pos.pose.position.x = std::round(drone_position_.pose.pose.position.x / precision) * precision;
-        tmp_pos.pose.position.y = std::round(drone_position_.pose.pose.position.y / precision) * precision;
+        tmp_pos.pose.position.x = std::round(task_points_[0].x[0] / precision) * precision;
+        tmp_pos.pose.position.y = std::round(task_points_[0].y[0] / precision) * precision;
         tmp_pos.pose.position.z = drone_position_.pose.pose.position.z;
         std::vector<float> x_vec, y_vec;
         // for(int j = 0; j < task_points_.size(); j++)
@@ -318,9 +318,22 @@ private:
             x = std::round(task_points_[j].x[0] / precision) * precision;
             y = std::round(task_points_[j].y[0] / precision) * precision;
             char command[1024];
+            std::string altitude;
+            if(std::round(tmp_pos.pose.position.z*100) >= 0 && std::round(tmp_pos.pose.position.z*100) <75)
+                altitude = "025";
+            else if(std::round(tmp_pos.pose.position.z*100) >= 75 && std::round(tmp_pos.pose.position.z*100) <100)
+                altitude = "080";
+            else if(std::round(tmp_pos.pose.position.z*100) >= 100 && std::round(tmp_pos.pose.position.z*100) <125)
+                altitude = "125";
+            else if(std::round(tmp_pos.pose.position.z*100) >= 125 && std::round(tmp_pos.pose.position.z*100) <175)
+                altitude = "150";
+            else if(std::round(tmp_pos.pose.position.z*100) >= 175 && std::round(tmp_pos.pose.position.z*100) <200)
+                altitude = "180";
+            else 
+                altitude = "225";
             snprintf(command, sizeof(command), "python3 /home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/map_loader.py %s %s %s %s %s %s %s",
                                                 map_name.c_str(),
-                                                std::to_string(std::round(tmp_pos.pose.position.z*100)).c_str(),
+                                                altitude.c_str(),
                                                 std::to_string((int)(tmp_pos.pose.position.x / precision)).c_str(), 
                                                 std::to_string((int)(tmp_pos.pose.position.y / precision)).c_str(),
                                                 std::to_string((int)(x / precision)).c_str(),
@@ -334,8 +347,8 @@ private:
             else 
                 RCLCPP_ERROR(this->get_logger(), "Error executing the python script");
             std::fstream file;
-            // file.open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/simplified_points.csv", std::fstream::in);
-            file.open("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/simplified_points.csv", std::fstream::in);
+            file.open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/simplified_points.csv", std::fstream::in);
+            // file.open("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/simplified_points.csv", std::fstream::in);
             std::string line;
             std::vector<float> tmp_vec;
             while (getline(file, line))

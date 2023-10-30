@@ -8,7 +8,7 @@ from PIL import Image
 import numpy as np
 from math import atan2
 import csv
-
+import sys
 
 START_COL = "S"
 END_COL = "E"
@@ -219,8 +219,8 @@ def save_points_to_csv(points, csv_name):
 
 
 def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
-    print("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/" + map_name + str(altitude) + ".pgm")
-    with open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/" + map_name + str(altitude) + ".pgm", "rb") as file:
+    print("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm")
+    with open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm", "rb") as file:
         byte_data = file.read()
         data = byte_data.decode("utf-8")
 
@@ -273,6 +273,12 @@ def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
     save_points_to_csv(simplified_points, csv_name)
 
 
+def main(argv):
+    print(argv[0:])
+    init(map_name=argv[0], altitude=argv[1], start_x=int(argv[2]), start_y=int(argv[3]), end_x=int(argv[4]), end_y=int(argv[5]), csv_name=argv[6])
+
+    
 
 if __name__ == "__main__":
-    init(map_name="map_", altitude=125, start_x=250, start_y=300, end_x=50, end_y=35, csv_name="simplified_points.csv")
+    # init(map_name="map_", altitude=125, start_x=250, start_y=300, end_x=50, end_y=35, csv_name="simplified_points.csv")
+    main(sys.argv[1:])
