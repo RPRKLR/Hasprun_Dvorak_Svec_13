@@ -163,6 +163,13 @@ public:
                     RCLCPP_INFO(this->get_logger(), "AAAA %f", task_points_[position_count_].z);
                     takeoff_srv->altitude = task_points_[position_count_].z;
                     RCLCPP_INFO(this->get_logger(), "BBBBB");
+                    while(rclcpp::ok() && !current_state_.armed)
+                    {
+                        RCLCPP_INFO(this->get_logger(), "arm is not set %d", current_state_.armed);
+                        auto arm_future = arming_client_->async_send_request(arm_set);
+                        rclcpp::spin_some(this->get_node_base_interface());
+                        std::this_thread::sleep_for(2000ms);
+                    }
                     takeOffDrone(takeoff_srv);
                 }
 
@@ -444,6 +451,7 @@ private:
         drone_goal_pose.pose.position.x = x;
         drone_goal_pose.pose.position.y = y;
         drone_goal_pose.pose.position.z = z;
+        RCLCPP_INFO(this->get_logger(), "Set goal dest");
     }
 
     void local_pos_cb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
@@ -522,11 +530,12 @@ private:
             RCLCPP_INFO(this->get_logger(), "Takeoff failed");
         }
 
-        while(drone_position_.pose.pose.position.z < srv->altitude - precision_ && drone_position_.pose.pose.position.z > srv->altitude + precision_)
-        {
-            RCLCPP_INFO(this->get_logger(), "Drone is taking off to given altitude");
-        }
 
+        while(sqrt(pow(drone_position_.pose.pose.position.z - srv->altitude, 2)) > precision_)
+        {
+            RCLCPP_INFO(this->get_logger(), "diff: %f, prec: %f",sqrt(pow(drone_position_.pose.pose.position.z, srv->altitude)), precision_);
+        }
+        is_moving_ = false;
     }
 
     /**
