@@ -495,6 +495,12 @@ private:
             RCLCPP_INFO(this->get_logger(), "Land failed");
             rclcpp::shutdown();
         }
+
+        while(drone_position_.pose.pose.position.z < srv->altitude - precision_ && drone_position_.pose.pose.position.z > srv->altitude + precision_)
+        {
+            RCLCPP_INFO(this->get_logger(), "Drone is taking off to given altitude");
+        }
+
     }
 
     /**
@@ -514,6 +520,11 @@ private:
         else 
         {
             RCLCPP_INFO(this->get_logger(), "Takeoff failed");
+        }
+
+        while(drone_position_.pose.pose.position.z < srv->altitude - precision_ && drone_position_.pose.pose.position.z > srv->altitude + precision_)
+        {
+            RCLCPP_INFO(this->get_logger(), "Drone is taking off to given altitude");
         }
 
     }
