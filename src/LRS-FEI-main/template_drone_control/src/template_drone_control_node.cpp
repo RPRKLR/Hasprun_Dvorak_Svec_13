@@ -150,6 +150,7 @@ public:
                 {
                     is_moving_ = true;
                     std::shared_ptr<mavros_msgs::srv::CommandTOL::Request> takeoff_srv;
+                    RCLCPP_INFO(this->get_logger(), "AAAA %f", task_points_[position_count_].z);
                     takeoff_srv->altitude = task_points_[position_count_].z;
                     takeOffDrone(takeoff_srv);
                 }
@@ -252,18 +253,23 @@ private:
 
         while (getline(file, line))
         {
+            float temp_float;
             // Getting the task point x value 
             std::istringstream line_stream(line);
             std::string tmp_container;
             TaskPoint tmp_task_point;
             getline(line_stream, tmp_container, ',');
             std::stringstream ss(tmp_container);
-            ss >> tmp_task_point.x[0];
+            ss >> temp_float;
+            // ss >> tmp_task_point.x[0];
+            tmp_task_point.x.push_back(temp_float);
             // Getting the task point y value
             ss.clear();
             getline(line_stream, tmp_container, ',');
             ss << tmp_container;
-            ss >> tmp_task_point.y[0];
+            // ss >> tmp_task_point.y[0];
+            ss >> temp_float;
+            tmp_task_point.y.push_back(temp_float);
 
             // Getting the task point z value
             ss.clear();
@@ -304,9 +310,9 @@ private:
             x = std::round(task_points_[j].x[0] / precision) * precision;
             y = std::round(task_points_[j].y[0] / precision) * precision;
             char command[1024];
-            snprintf(command, sizeof(command), "python3 %s %s %s %s %s %s %s",
+            snprintf(command, sizeof(command), "python3 /home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/map_loader.py %s %s %s %s %s %s %s",
                                                 map_name.c_str(),
-                                                std::to_string(tmp_pos.pose.position.z*100).c_str(),
+                                                std::to_string(std::round(tmp_pos.pose.position.z*100)).c_str(),
                                                 std::to_string((int)(tmp_pos.pose.position.x / precision)).c_str(), 
                                                 std::to_string((int)(tmp_pos.pose.position.y / precision)).c_str(),
                                                 std::to_string((int)(x / precision)).c_str(),
@@ -320,7 +326,8 @@ private:
             else 
                 RCLCPP_ERROR(this->get_logger(), "Error executing the python script");
             std::fstream file;
-            file.open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/simplified_points.csv", std::fstream::in);
+            // file.open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/simplified_points.csv", std::fstream::in);
+            file.open("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/simplified_points.csv", std::fstream::in);
             std::string line;
             std::vector<float> tmp_vec;
             while (getline(file, line))
