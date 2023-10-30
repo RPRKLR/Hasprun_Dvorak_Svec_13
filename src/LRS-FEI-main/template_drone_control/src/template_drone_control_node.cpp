@@ -85,7 +85,7 @@ public:
         auto arm_future = arming_client_->async_send_request(arm_set);
         RCLCPP_INFO(this->get_logger(), "Request is sent for ARM");
         RCLCPP_INFO(this->get_logger(), "Waiting for result");
-        if(rclcpp::spin_until_future_complete(shared_from_this(), arm_future) == rclcpp::FutureReturnCode::SUCCESS)
+        if(rclcpp::spin_until_future_complete(this->get_node_base_interface(), arm_future) == rclcpp::FutureReturnCode::SUCCESS)
         {
             RCLCPP_INFO(this->get_logger(), "Got request result from arming: %d", arm_future.get()->result);
         }
@@ -93,7 +93,7 @@ public:
         {
             RCLCPP_INFO(this->get_logger(), "Failed to call service for arming");
         }
-        
+        std::this_thread::sleep_for(30000ms);
         // Take off control
         // Creating service message for the takeoff client
         // auto takeoff_set = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
