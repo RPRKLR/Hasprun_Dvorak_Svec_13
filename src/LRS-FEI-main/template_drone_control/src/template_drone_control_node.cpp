@@ -93,7 +93,7 @@ public:
         {
             RCLCPP_INFO(this->get_logger(), "Failed to call service for arming");
         }
-        std::this_thread::sleep_for(30000ms);
+        // std::this_thread::sleep_for(30000ms);
         // Take off control
         // Creating service message for the takeoff client
         // auto takeoff_set = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
@@ -129,6 +129,8 @@ public:
 
         // TODO: Implement position controller and mission commands here
         // Position controller 
+        RCLCPP_INFO(this->get_logger(), "POSITION COUNT: %d", position_count_);
+        RCLCPP_INFO(this->get_logger(), "TASK POINT SIZE: %d ",task_points_.size());
         while(position_count_ < task_points_.size() && rclcpp::ok())
         {
             while(filtered_position_count_ < task_points_[position_count_].x.size())
@@ -153,9 +155,14 @@ public:
                 if(task_points_[position_count_].task == "takeoff" && !is_moving_ && !is_on_altitude_)
                 {
                     is_moving_ = true;
-                    std::shared_ptr<mavros_msgs::srv::CommandTOL::Request> takeoff_srv;
+                    auto takeoff_srv = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
                     RCLCPP_INFO(this->get_logger(), "AAAA %f", task_points_[position_count_].z);
+        //                     takeoff_set->min_pitch = 0;
+        // takeoff_set->yaw = 90;
+        // takeoff_set->altitude = 2;
+        //             takeoff_srv
                     takeoff_srv->altitude = task_points_[position_count_].z;
+                    RCLCPP_INFO(this->get_logger(), "BBBBB");
                     takeOffDrone(takeoff_srv);
                 }
 
@@ -252,7 +259,7 @@ private:
     {
         std::fstream file;
         // file.open("path/to/commands", std::fstream::in);
-        file.open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/resources/points_example.csv", std::fstream::in);
+        file.open("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/resources/points_example.csv", std::fstream::in);
         std::string line;
 
         while (getline(file, line))
@@ -331,7 +338,7 @@ private:
                 altitude = "180";
             else 
                 altitude = "225";
-            snprintf(command, sizeof(command), "python3 /home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/map_loader.py %s %s %s %s %s %s %s",
+            snprintf(command, sizeof(command), "python3 /home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/map_loader.py %s %s %s %s %s %s %s",
                                                 map_name.c_str(),
                                                 altitude.c_str(),
                                                 std::to_string((int)(tmp_pos.pose.position.x / precision)).c_str(), 
@@ -347,8 +354,8 @@ private:
             else 
                 RCLCPP_ERROR(this->get_logger(), "Error executing the python script");
             std::fstream file;
-            file.open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/simplified_points.csv", std::fstream::in);
-            // file.open("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/simplified_points.csv", std::fstream::in);
+            // file.open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/simplified_points.csv", std::fstream::in);
+            file.open("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/simplified_points.csv", std::fstream::in);
             std::string line;
             std::vector<float> tmp_vec;
             while (getline(file, line))
