@@ -85,9 +85,15 @@ public:
         auto arm_future = arming_client_->async_send_request(arm_set);
         RCLCPP_INFO(this->get_logger(), "Request is sent for ARM");
         RCLCPP_INFO(this->get_logger(), "Waiting for result");
-        // auto arm_result = arm_future.get();
-        // RCLCPP_INFO(this->get_logger(), "Get result from server, ARM: %d", arm_result->result);
-
+        if(rclcpp::spin_until_future_complete(shared_from_this(), arm_future) == rclcpp::FutureReturnCode::SUCCESS)
+        {
+            RCLCPP_INFO(this->get_logger(), "Got request result from arming: %d", arm_future.get()->result);
+        }
+        else 
+        {
+            RCLCPP_INFO(this->get_logger(), "Failed to call service for arming");
+        }
+        
         // Take off control
         // Creating service message for the takeoff client
         auto takeoff_set = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
@@ -108,17 +114,15 @@ public:
         auto takeoff_result = takeoff_client_->async_send_request(takeoff_set);
         RCLCPP_INFO(this->get_logger(), "Request sent for takeoff");
         
-        // while(rclcpp::ok())
-        // {
-        //     std::future_status status = takeoff_result.wait_for(1s);
-        //     if(status == std::future_status::ready)
-        //     {
-        //         break;
-        //     }
-        //     RCLCPP_INFO(this->get_logger(), "Waiting for result");
-        // }
-        // RCLCPP_INFO(this->get_logger(), "Get result from server, ARM: %d", takeoff_result.get()->result);
-        
+        if(rclcpp::spin_until_future_complete(shared_from_this(), takeoff_result) == rclcpp::FutureReturnCode::SUCCESS)
+        {
+            RCLCPP_INFO(this->get_logger(), "Got request result: %d", takeoff_result.get()->result);
+        }
+        else 
+        {
+            RCLCPP_INFO(this->get_logger(), "Failed to call service for takeoff");
+        }
+
         RCLCPP_INFO(this->get_logger(), "Getting position commands from csv file.");
         getInputFromFile();
         createGoalPointsBasedOnAltitudeAndMaps("map_");
@@ -275,19 +279,23 @@ private:
             ss.clear();
             getline(line_stream, tmp_container, ',');
             ss << tmp_container;
-            ss >> tmp_task_point.z;
+            ss >> temp_float;
+            tmp_task_point.z = temp_float;
 
             // Getting the task precision
+            std::string temp_str;
             ss.clear();
             getline(line_stream, tmp_container, ',');
             ss << tmp_container;
-            ss >> tmp_task_point.precision;
+            ss >> temp_str;
+            tmp_task_point.precision = temp_str;
 
             // Getting the task 
             ss.clear();
             getline(line_stream, tmp_container, ',');
             ss << tmp_container;
-            ss >> tmp_task_point.task;
+            ss >> temp_str;
+            tmp_task_point.task = temp_str;
 
             task_points_.push_back(tmp_task_point);
         }
