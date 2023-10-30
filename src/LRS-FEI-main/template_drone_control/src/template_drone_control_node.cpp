@@ -47,6 +47,8 @@ public:
             std::this_thread::sleep_for(100ms);
         }
 
+        RCLCPP_INFO(this->get_logger(), "Current state is connected.");
+
         mavros_msgs::srv::SetMode::Request guided_set_mode_req;
         guided_set_mode_req.custom_mode = "GUIDED";
         while (!set_mode_client_->wait_for_service(1s))
@@ -58,6 +60,7 @@ public:
             }
             RCLCPP_INFO(this->get_logger(), "Waiting for set_mode service...");
         }
+        RCLCPP_INFO(this->get_logger(), "Set mode Client is available, setting mode to GUIDED");
         auto result = set_mode_client_->async_send_request(std::make_shared<mavros_msgs::srv::SetMode::Request>(guided_set_mode_req));
         // TODO: Test if drone state really changed to GUIDED
         while(rclcpp::ok() && !current_state_.guided)
