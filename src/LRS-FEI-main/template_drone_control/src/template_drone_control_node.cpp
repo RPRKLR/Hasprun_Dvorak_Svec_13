@@ -85,8 +85,8 @@ public:
         auto arm_future = arming_client_->async_send_request(arm_set);
         RCLCPP_INFO(this->get_logger(), "Request is sent for ARM");
         RCLCPP_INFO(this->get_logger(), "Waiting for result");
-        auto arm_result = arm_future.get();
-        RCLCPP_INFO(this->get_logger(), "Get result from server, ARM: %d", arm_result->result);
+        // auto arm_result = arm_future.get();
+        // RCLCPP_INFO(this->get_logger(), "Get result from server, ARM: %d", arm_result->result);
 
         // Take off control
         // Creating service message for the takeoff client
@@ -108,16 +108,16 @@ public:
         auto takeoff_result = takeoff_client_->async_send_request(takeoff_set);
         RCLCPP_INFO(this->get_logger(), "Request sent for takeoff");
         
-        while(rclcpp::ok())
-        {
-            std::future_status status = takeoff_result.wait_for(1s);
-            if(status == std::future_status::ready)
-            {
-                break;
-            }
-            RCLCPP_INFO(this->get_logger(), "Waiting for result");
-        }
-        RCLCPP_INFO(this->get_logger(), "Get result from server, ARM: %d", takeoff_result.get()->result);
+        // while(rclcpp::ok())
+        // {
+        //     std::future_status status = takeoff_result.wait_for(1s);
+        //     if(status == std::future_status::ready)
+        //     {
+        //         break;
+        //     }
+        //     RCLCPP_INFO(this->get_logger(), "Waiting for result");
+        // }
+        // RCLCPP_INFO(this->get_logger(), "Get result from server, ARM: %d", takeoff_result.get()->result);
         
         RCLCPP_INFO(this->get_logger(), "Getting position commands from csv file.");
         getInputFromFile();
