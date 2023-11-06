@@ -91,3 +91,5 @@
 - move_trough_points - The trajectory generation can give back multiple simplified points. This function goes trough all the simplified points, until the final goal position is reached.
 
 ### Solution diagram
+
+[1][Ramer–Douglas–Peucker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm)
