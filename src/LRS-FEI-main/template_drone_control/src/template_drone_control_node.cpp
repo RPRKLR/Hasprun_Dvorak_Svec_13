@@ -39,21 +39,21 @@ public:
             std::this_thread::sleep_for(100ms);
         }
 
-        read_mission_csv("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/resources/points_example.csv");
+        read_mission_csv("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/resources/mission_1_all.csv");
 
-        mavros_msgs::srv::SetMode::Request guided_set_mode_req;
-        guided_set_mode_req.custom_mode = "GUIDED";
-        while (!set_mode_client_->wait_for_service(1s))
-        {
-            if (!rclcpp::ok())
-            {
-                RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the set_mode service. Exiting.");
-                return;
-            }
-            RCLCPP_INFO(this->get_logger(), "Waiting for set_mode service...");
-        }
-        auto result = set_mode_client_->async_send_request(std::make_shared<mavros_msgs::srv::SetMode::Request>(guided_set_mode_req));
-
+        // mavros_msgs::srv::SetMode::Request guided_set_mode_req;
+        // guided_set_mode_req.custom_mode = "GUIDED";
+        // while (!set_mode_client_->wait_for_service(1s))
+        // {
+        //     if (!rclcpp::ok())
+        //     {
+        //         RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the set_mode service. Exiting.");
+        //         return;
+        //     }
+        //     RCLCPP_INFO(this->get_logger(), "Waiting for set_mode service...");
+        // }
+        // auto result = set_mode_client_->async_send_request(std::make_shared<mavros_msgs::srv::SetMode::Request>(guided_set_mode_req));
+        set_mode("GUIDED");
         // TODO: Test if drone state really changed to GUIDED
         mode_check("GUIDED");
         
@@ -90,7 +90,7 @@ public:
                 RCLCPP_INFO(this->get_logger(), "Received takeoff command");
                 RCLCPP_INFO(this->get_logger(), "Arming drone");
                 arm(true);
-                RCLCPP_INFO(this->get_logger(), "Drone armed");
+                // RCLCPP_INFO(this->get_logger(), "Drone armed");
                 takeoff(0, yaw, altitude);
                 check_altitude(altitude, precision);
                 is_at_altitude = true;
@@ -107,9 +107,13 @@ public:
                 is_at_position = true;
                 land();
                 check_land();
+                // RCLCPP_INFO(this->get_logger(), "Disarming drone");
+                arm(false);
+                set_mode("GUIDED");
+                mode_check("GUIDED");
                 RCLCPP_INFO(this->get_logger(), "Arming drone");
                 arm(true);
-                RCLCPP_INFO(this->get_logger(), "Drone armed");
+                // RCLCPP_INFO(this->get_logger(), "Drone armed");
                 takeoff(0, yaw, altitude);
                 check_altitude(altitude, precision);
                 is_at_altitude = true;
@@ -126,6 +130,16 @@ public:
                 check_land();
                 arm(false);
                 is_at_altitude = true;
+            }
+            if (current_task_point.task.find("yaw") != std::string::npos )
+            {
+                RCLCPP_INFO(this->get_logger(), "Received %s command", current_task_point.task.c_str());
+                size_t pos = current_task_point.task.find_first_of("0123456789");
+                if (pos != std::string::npos)
+                {
+                    yaw = std::stof(current_task_point.task.substr(pos));
+                    RCLCPP_INFO(this->get_logger(), "Setting yaw=%f", yaw);    
+                }
             }
             if (!is_at_altitude)
             {
@@ -186,6 +200,22 @@ private:
             RCLCPP_INFO(this->get_logger(), "Waiting for mode to be set to %s", mode.c_str());
         }
     }
+    void set_mode(std::string mode)
+    {
+        RCLCPP_INFO(this->get_logger(), "Setting mode=%s", mode.c_str());
+        mavros_msgs::srv::SetMode::Request set_mode_req;
+        set_mode_req.custom_mode = mode;
+        while (!set_mode_client_->wait_for_service(1s))
+        {
+            if (!rclcpp::ok())
+            {
+                RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the set_mode service. Exiting.");
+                return;
+            }
+            RCLCPP_INFO(this->get_logger(), "Waiting for set_mode service...");
+        }
+        auto result = set_mode_client_->async_send_request(std::make_shared<mavros_msgs::srv::SetMode::Request>(set_mode_req));
+    }
     void arm(bool value)
     {
         mavros_msgs::srv::CommandBool::Request arm_req;
@@ -207,6 +237,7 @@ private:
             std::this_thread::sleep_for(1000ms);
             RCLCPP_INFO(this->get_logger(), "Waiting for drone to be armed=%d", value);
         }
+        RCLCPP_INFO(this->get_logger(), "Drone armed=%d", value);
     }
     void takeoff(float min_pitch, float yaw, float altitude)
     {
@@ -274,7 +305,7 @@ private:
         while (rclcpp::ok() && current_state_.mode == "LAND" && !is_landed)
         {
             float curr_land_val = current_local_pos_.pose.position.z;
-            if(abs(land_val - curr_land_val) > 0.05)
+            if(abs(land_val - curr_land_val) > 0.02)
             {
                 land_val = curr_land_val;
             }
@@ -284,7 +315,7 @@ private:
             }
             rclcpp::spin_some(this->get_node_base_interface());
             std::this_thread::sleep_for(1000ms);
-            RCLCPP_INFO(this->get_logger(), "Waiting for drone to land and disarm");
+            RCLCPP_INFO(this->get_logger(), "Waiting for drone to land");
         }
         RCLCPP_INFO(this->get_logger(), "Drone landed");
     }
@@ -332,7 +363,7 @@ private:
     std::string generate_trajectory(std::string altitude, float x_start, float y_start, float x_end, float y_end)
     {
         char command[1024];
-        RCLCPP_INFO(this->get_logger(), "Python INSIDE x_start=%f, y_start=%f, x_end=%f, y_end=%f", x_start, y_start, x_end, y_end);
+        // RCLCPP_INFO(this->get_logger(), "Python INSIDE x_start=%f, y_start=%f, x_end=%f, y_end=%f", x_start, y_start, x_end, y_end);
         snprintf(command, sizeof(command), "python3 /home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/map_loader.py %s %s %s %s %s %s %s",
                                                 "map_",
                                                 altitude.c_str(),
@@ -410,8 +441,8 @@ private:
             }
 
             MidPoints tmp_mid_point;
-            tmp_mid_point.x = std::stof(split_parts[0])*5/100;
-            tmp_mid_point.y = std::stof(split_parts[1])*5/100;
+            tmp_mid_point.x = (std::stof(split_parts[0])+7)*5/100;
+            tmp_mid_point.y = (std::stof(split_parts[1])+14)*5/100;
 
             mid_points_.push_back(tmp_mid_point);
         }
@@ -419,12 +450,12 @@ private:
     }
     void move_through_points(float precision, float current_task_point_x, float current_task_point_y)
     {
-        for(int k = 1; k < (int) mid_points_.size(); k++)
-        {
-            RCLCPP_INFO(this->get_logger(), "k: %d", k);
-            RCLCPP_INFO(this->get_logger(), "x: %f", mid_points_[k].x);
-            RCLCPP_INFO(this->get_logger(), "y: %f", mid_points_[k].y);
-        }
+        // for(int k = 1; k < (int) mid_points_.size(); k++)
+        // {
+        //     RCLCPP_INFO(this->get_logger(), "k: %d", k);
+        //     RCLCPP_INFO(this->get_logger(), "x: %f", mid_points_[k].x);
+        //     RCLCPP_INFO(this->get_logger(), "y: %f", mid_points_[k].y);
+        // }
         if((int) mid_points_.size() > 1)
         {   
             int point_iteration = 1;
