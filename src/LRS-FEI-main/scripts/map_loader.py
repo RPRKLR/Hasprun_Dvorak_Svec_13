@@ -142,13 +142,14 @@ def draw_path(path, grid):
     return grid
 
 def make_safety_area_for_obstacles(grid):
+    offset = 5
     for idx_col, col in enumerate(grid):
         for idx_row, row in enumerate(col):
             if(row == 255):
                 continue
             elif(row == 0):
-                for i in range(-3, 3, 1):
-                    for j in range(-3, 3, 1):
+                for i in range(-offset-1, offset+1, 1):
+                    for j in range(-offset-1, offset+1, 1):
                         if(idx_col + i < 0 or idx_row + j < 0 or idx_col + i > len(grid) - 1 or idx_row + j > len(grid[-1]) - 1):
                             continue
                         if (grid[idx_col + i][idx_row + j] == 0):
@@ -248,7 +249,6 @@ def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
     pixel_data = replace_values_in_array(pixel_data)
     filtered_data = [sublist for sublist in pixel_data if sublist]    
 
-
     start_pos = (start_x, start_y)
     end_pos = (end_x, end_y)
     directions = scan_grid(filtered_data, start_pos)
@@ -256,9 +256,8 @@ def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
     path1 = find_path(start_pos, end_pos, directions)
 
     points = np.array(path1)
-    simplified_points = douglas_peucker(points, 1.0)
-    print(simplified_points)
-
+    simplified_points = douglas_peucker(points, 1)
+    
     grid_with_path1 = draw_path(path1, copy.deepcopy(filtered_data))
 
     grid_with_path1_converted = convert_to_numeric(grid_with_path1)
