@@ -91,6 +91,7 @@
 - move_trough_points - The trajectory generation can give back multiple simplified points. This function goes trough all the simplified points, until the final goal position is reached.
 
 ### Solution diagram
+![Solution diagram](solution_diagram.png)
 
 
 ### Startup functions
