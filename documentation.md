@@ -95,5 +95,19 @@
 
 ### Startup functions
 
+1. Open terminator with LRS layout. 
+2. In 1st terminal launch gazebo: `gazebo <path_to_world>/fei_lrs_gazebo.world`
+3. In 2nd terminal launch ArduPilot SITL: 
+```
+cd ardupilot/ArduCopter
+sim_vehicle.py -f gazebo-iris --console -l 48.15084570555732,17.072729745416016,150,0
+```
+4. Launch mavros `ros2 run mavros mavros_node --ros-args -p fcu_url:=udp://127.0.0.1:14551@14555`
+5. Build the template_drone_control package, source it and run the package. The mission tasks will start automatically.
+```
+colcon build
+. install/setup.bash
+ros2 run template_drone_control template_drone_control_node
+```
 
 [1][Ramer–Douglas–Peucker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm)
