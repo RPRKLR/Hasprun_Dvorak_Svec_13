@@ -220,8 +220,8 @@ def save_points_to_csv(points, csv_name):
 
 
 def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
-    print("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm")
-    with open("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm", "rb") as file:
+    print("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm")
+    with open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm", "rb") as file:
         byte_data = file.read()
         data = byte_data.decode("utf-8")
 
@@ -253,7 +253,18 @@ def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
     end_pos = (end_x, end_y)
     directions = scan_grid(filtered_data, start_pos)
 
-    path1 = find_path(start_pos, end_pos, directions)
+
+    src = (start_y, start_x)
+    dest = (end_y, end_x)
+
+
+    grid = convert_to_numeric(filtered_data)
+
+    print(grid)
+
+    a_star_search(grid, src, dest)
+
+    # path1 = find_path(start_pos, end_pos, directions)
 
     points = np.array(path1)
     simplified_points = douglas_peucker(points, 1)
@@ -270,6 +281,7 @@ def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
     write_pgm(grid_with_path1_converted, 'filtered_path_output.pgm')
 
     save_points_to_csv(simplified_points, csv_name)
+
 
 
 def main(argv):
