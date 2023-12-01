@@ -146,7 +146,7 @@ def draw_path(path, grid):
     return grid
 
 def make_safety_area_for_obstacles(grid):
-    offset = 5
+    offset = 4
     for idx_col, col in enumerate(grid):
         for idx_row, row in enumerate(col):
             if(row == 255):
@@ -243,7 +243,7 @@ def is_valid(row, col):
 # blocked or not
 def is_unblocked(grid, row, col):
     # Returns true if the cell is not blocked else false
-    return grid[col][row] == 1
+    return grid[row][col] == 1
 
 # A Utility Function to calculate the 'h' heuristics.
 def calculate_h_value(row, col, dest):
@@ -382,7 +382,7 @@ def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
 
 
     extrapolated_obstacle_grid =  make_safety_area_for_obstacles(filtered_data_pgm)
-    print(extrapolated_obstacle_grid)
+    # print(extrapolated_obstacle_grid)
 
     write_pgm(extrapolated_obstacle_grid, 'extrapolated.pgm')
 
@@ -402,7 +402,7 @@ def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
 
     grid = convert_to_numeric_ones(filtered_data)
 
-    print(grid)
+    # print(grid)
 
     path1 = a_star_search(grid, src, dest)
 

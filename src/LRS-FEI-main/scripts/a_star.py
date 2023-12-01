@@ -147,7 +147,7 @@ if __name__ == "__main__":
     ]
 
     src = (0, 0)
-    dest = (4, 4)
+    dest = (4, 0)
 
     cell_details = a_star_search(grid, src, dest)
     print(cell_details)
