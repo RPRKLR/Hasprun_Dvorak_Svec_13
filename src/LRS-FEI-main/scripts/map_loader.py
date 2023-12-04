@@ -303,10 +303,9 @@ def a_star_search(grid, src, dest):
         # Add this vertex to the closed list
         closed_list[i][j] = True
 
-        # Generating all the 8 successors of this cell
+        # Generating all the 4 successors of this cell
         successors = [
-            (-1, 0), (1, 0), (0, 1), (0, -1),
-            (-1, 1), (-1, -1), (1, 1), (1, -1)
+            (-1, 0), (1, 0), (0, 1), (0, -1)
         ]
 
         for dx, dy in successors:
