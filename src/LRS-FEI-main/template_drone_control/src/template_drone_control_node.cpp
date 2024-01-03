@@ -1,5 +1,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include "std_msgs/msg/int32.hpp"
 #include <mavros_msgs/msg/state.hpp>
 #include <mavros_msgs/msg/position_target.hpp>
 #include <mavros_msgs/srv/command_bool.hpp>
@@ -20,6 +21,7 @@ public:
         state_sub_ = this->create_subscription<mavros_msgs::msg::State>(
             "mavros/state", 10, std::bind(&TemplateDroneControl::state_cb, this, std::placeholders::_1));
         local_pos_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("mavros/setpoint_position/local", 10);
+//        interrupt_pub_ = this->create_publisher<std_msgs::msg::Int32>("mavros/set_interrupt", 10);
         position_target_pub_ = this->create_publisher<mavros_msgs::msg::PositionTarget>("/mavros/setpoint_raw/local", 10);
         arming_client_ = this->create_client<mavros_msgs::srv::CommandBool>("mavros/cmd/arming");
         set_mode_client_ = this->create_client<mavros_msgs::srv::SetMode>("mavros/set_mode");
@@ -31,6 +33,8 @@ public:
         auto qos = rclcpp::QoS(rclcpp::QoSInitialization(custom_qos.history, 1), custom_qos);
         local_pos_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
                 "/mavros/local_position/pose", qos, std::bind(&TemplateDroneControl::local_pos_cb, this, std::placeholders::_1));
+        interrupt_sub_ = this->create_subscription<std_msgs::msg::Int32>(
+                "/mavros/interrupt", qos, std::bind(&TemplateDroneControl::interrupt_cb, this, std::placeholders::_1));
 
         // Wait for MAVROS SITL connection
         while (rclcpp::ok() && !current_state_.connected)
@@ -66,7 +70,8 @@ public:
         float precision;
         float altitude;
         std::string current_map;
-        while (current_point < (int) task_points_.size())
+//        while (current_point < (int) task_points_.size())
+        while (false)
         {
             if (!first_check)
             {
@@ -185,6 +190,19 @@ private:
 
 
         // RCLCPP_INFO(this->get_logger(), "Current Local Position: %f, %f, %f", current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, current_local_pos_.pose.position.z);
+    }
+    void interrupt_cb(const std_msgs::msg::Int32::SharedPtr msg)
+    {
+        std_msgs::msg::Int32 curr_val = *msg;;
+        if(curr_val.data == 1 || curr_val.data == 0)
+        {
+            current_interrupt_ = *msg;
+            RCLCPP_INFO(this->get_logger(), "Received interrupt=%d", current_interrupt_.data);
+        }
+        else
+        {
+            RCLCPP_INFO(this->get_logger(), "Received bad value! Please enter 0(continue) or 1(stop) for interrupt!");
+        }
     }
     void state_cb(const mavros_msgs::msg::State::SharedPtr msg)
     {
@@ -478,6 +496,7 @@ private:
 
     rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr state_sub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr local_pos_pub_;
+//    rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr interrupt_pub_;
     rclcpp::Publisher<mavros_msgs::msg::PositionTarget>::SharedPtr position_target_pub_;
     rclcpp::Client<mavros_msgs::srv::CommandBool>::SharedPtr arming_client_;
     rclcpp::Client<mavros_msgs::srv::SetMode>::SharedPtr set_mode_client_;
@@ -485,9 +504,11 @@ private:
     rclcpp::Client<mavros_msgs::srv::CommandTOL>::SharedPtr land_client_;
 
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr local_pos_sub_;
+    rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr interrupt_sub_;
 
     mavros_msgs::msg::State current_state_;
     geometry_msgs::msg::PoseStamped current_local_pos_;
+    std_msgs::msg::Int32 current_interrupt_;
 
     struct TaskPoint{
         float x;

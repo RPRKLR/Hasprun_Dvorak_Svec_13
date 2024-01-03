@@ -16,12 +16,13 @@ find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(mavros_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 # Declare a C++ executable
 add_executable(template_drone_control_node src/template_drone_control_node.cpp)
 
 # Specify libraries to link a library or executable target against
-ament_target_dependencies(template_drone_control_node rclcpp geometry_msgs mavros_msgs nav_msgs)
+ament_target_dependencies(template_drone_control_node rclcpp geometry_msgs mavros_msgs nav_msgs std_msgs)
 
 # Install the executable
 install(TARGETS template_drone_control_node DESTINATION lib/${PROJECT_NAME})
