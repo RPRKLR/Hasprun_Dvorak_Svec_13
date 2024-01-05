@@ -43,7 +43,7 @@ public:
             std::this_thread::sleep_for(100ms);
         }
 
-        read_mission_csv("/home/lrs-ubuntu/Desktop/git-lrs/Hasprun_Dvorak_Svec_13/src/LRS-FEI-main/resources/mission_1_all.csv");
+        read_mission_csv("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/resources/mission_1_all.csv");
 
         // mavros_msgs::srv::SetMode::Request guided_set_mode_req;
         // guided_set_mode_req.custom_mode = "GUIDED";
@@ -438,7 +438,7 @@ private:
     {
         char command[1024];
         // RCLCPP_INFO(this->get_logger(), "Python INSIDE x_start=%f, y_start=%f, x_end=%f, y_end=%f", x_start, y_start, x_end, y_end);
-        snprintf(command, sizeof(command), "python3 /home/lrs-ubuntu/Desktop/git-lrs/Hasprun_Dvorak_Svec_13/src/LRS-FEI-main/scripts/map_loader.py %s %s %s %s %s %s %s",
+        snprintf(command, sizeof(command), "python3 /home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/map_loader.py %s %s %s %s %s %s %s",
                                                 "map_",
                                                 altitude.c_str(),
                                                 std::to_string((int) (x_start*100/5)).c_str(), 
@@ -457,13 +457,13 @@ private:
             RCLCPP_ERROR(this->get_logger(), "Error executing the python script");
         }
         
-        return "/home/lrs-ubuntu/Desktop/git-lrs/Hasprun_Dvorak_Svec_13/trajectory_points.csv";
+        return "/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/trajectory_points.csv";
     }
     std::string generate_trajectory_circle(std::string altitude, float x_start, float y_start, float x_end, float y_end)
     {
         char command[1024];
         // RCLCPP_INFO(this->get_logger(), "Python INSIDE x_start=%f, y_start=%f, x_end=%f, y_end=%f", x_start, y_start, x_end, y_end);
-        snprintf(command, sizeof(command), "python3 /home/lrs-ubuntu/Desktop/git-lrs/Hasprun_Dvorak_Svec_13/src/LRS-FEI-main/scripts/circle_move.py %s %s %s %s %s %s %s",
+        snprintf(command, sizeof(command), "python3 /home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/circle_move.py %s %s %s %s %s %s %s",
                  "map_",
                  altitude.c_str(),
                  std::to_string((int) (x_start*100/5)).c_str(),
@@ -482,7 +482,7 @@ private:
             RCLCPP_ERROR(this->get_logger(), "Error executing the python script");
         }
 
-        return "/home/lrs-ubuntu/Desktop/git-lrs/Hasprun_Dvorak_Svec_13/trajectory_points.csv";
+        return "/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/trajectory_points.csv";
     }
     void read_mission_csv(std::string path)
     {

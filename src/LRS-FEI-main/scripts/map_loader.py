@@ -366,8 +366,8 @@ def trace_path(cell_details, dest):
     return output_path
 
 def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
-    print("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm")
-    with open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm", "rb") as file:
+    print("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm")
+    with open("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm", "rb") as file:
         byte_data = file.read()
         data = byte_data.decode("utf-8")
 
