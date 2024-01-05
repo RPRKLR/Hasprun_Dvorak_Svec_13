@@ -1,5 +1,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include "std_msgs/msg/int32.hpp"
 #include <mavros_msgs/msg/state.hpp>
 #include <mavros_msgs/msg/position_target.hpp>
 #include <mavros_msgs/srv/command_bool.hpp>
@@ -20,6 +21,7 @@ public:
         state_sub_ = this->create_subscription<mavros_msgs::msg::State>(
             "mavros/state", 10, std::bind(&TemplateDroneControl::state_cb, this, std::placeholders::_1));
         local_pos_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("mavros/setpoint_position/local", 10);
+//        interrupt_pub_ = this->create_publisher<std_msgs::msg::Int32>("mavros/set_interrupt", 10);
         position_target_pub_ = this->create_publisher<mavros_msgs::msg::PositionTarget>("/mavros/setpoint_raw/local", 10);
         arming_client_ = this->create_client<mavros_msgs::srv::CommandBool>("mavros/cmd/arming");
         set_mode_client_ = this->create_client<mavros_msgs::srv::SetMode>("mavros/set_mode");
@@ -31,6 +33,8 @@ public:
         auto qos = rclcpp::QoS(rclcpp::QoSInitialization(custom_qos.history, 1), custom_qos);
         local_pos_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
                 "/mavros/local_position/pose", qos, std::bind(&TemplateDroneControl::local_pos_cb, this, std::placeholders::_1));
+        interrupt_sub_ = this->create_subscription<std_msgs::msg::Int32>(
+                "/mavros/interrupt", qos, std::bind(&TemplateDroneControl::interrupt_cb, this, std::placeholders::_1));
 
         // Wait for MAVROS SITL connection
         while (rclcpp::ok() && !current_state_.connected)
@@ -39,7 +43,7 @@ public:
             std::this_thread::sleep_for(100ms);
         }
 
-        read_mission_csv("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/resources/mission_1_all.csv");
+        read_mission_csv("/home/lrs-ubuntu/Desktop/git-lrs/Hasprun_Dvorak_Svec_13/src/LRS-FEI-main/resources/mission_1_all.csv");
 
         // mavros_msgs::srv::SetMode::Request guided_set_mode_req;
         // guided_set_mode_req.custom_mode = "GUIDED";
@@ -68,6 +72,8 @@ public:
         std::string current_map;
         while (current_point < (int) task_points_.size())
         {
+//            rclcpp::spin_some(this->get_node_base_interface());
+//            continue;
             if (!first_check)
             {
                 current_task_point = task_points_[current_point];
@@ -141,6 +147,15 @@ public:
                     RCLCPP_INFO(this->get_logger(), "Setting yaw=%f", yaw);    
                 }
             }
+            // RCLCPP_INFO(this->get_logger(), "Disarming drone");
+            if (current_task_point.task == "circle")
+            {
+                std::string trajectory_path = generate_trajectory_circle(current_map, previous_x, previous_y, current_task_point.x, current_task_point.y);
+                read_points_csv(trajectory_path);
+                move_through_points(precision, current_task_point.x, current_task_point.y);
+                is_at_position = true;
+            }
+
             if (!is_at_altitude)
             {
                 move(current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, current_task_point.z, yaw);
@@ -185,6 +200,19 @@ private:
 
 
         // RCLCPP_INFO(this->get_logger(), "Current Local Position: %f, %f, %f", current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, current_local_pos_.pose.position.z);
+    }
+    void interrupt_cb(const std_msgs::msg::Int32::SharedPtr msg)
+    {
+        std_msgs::msg::Int32 curr_val = *msg;;
+        if(curr_val.data == 1 || curr_val.data == 0)
+        {
+            current_interrupt_ = *msg;
+            RCLCPP_INFO(this->get_logger(), "Received interrupt=%d", current_interrupt_.data);
+        }
+        else
+        {
+            RCLCPP_INFO(this->get_logger(), "Received bad interrupt value! Please enter 0(continue) or 1(stop) for interrupt!");
+        }
     }
     void state_cb(const mavros_msgs::msg::State::SharedPtr msg)
     {
@@ -287,10 +315,54 @@ private:
         RCLCPP_INFO(this->get_logger(), "Moving to x=%f, y=%f, z=%f", x, y, z);
         position_target_pub_->publish(message);
     }
+    void check_stop(float x, float y, float z)
+    {
+        bool isIterated = true;
+        while(current_interrupt_.data == 1)
+        {
+            RCLCPP_INFO(this->get_logger(), "Acquired STOP flag, waiting until CONTINUE is acquired...");
+            if(isIterated)
+            {
+                rclcpp::spin_some(this->get_node_base_interface());
+                remain_at_position();
+                isIterated = false;
+            }
+            rclcpp::spin_some(this->get_node_base_interface());
+            std::this_thread::sleep_for(1000ms);
+        }
+        if(is_stopped && current_interrupt_.data == 0)
+        {
+            RCLCPP_INFO(this->get_logger(), "Acquired CONTINUE flag...");
+            move(x, y, z, yaw);
+            is_stopped = false;
+        }
+    }
+    void remain_at_position()
+    {
+        auto message = mavros_msgs::msg::PositionTarget();
+        message.header.stamp.sec = 0;
+        message.header.stamp.nanosec = 0;
+        message.header.frame_id = "";
+        message.coordinate_frame = mavros_msgs::msg::PositionTarget::FRAME_LOCAL_NED;
+        message.type_mask = 0b0000101111111000;
+//        message.type_mask = 0b0000101111000000;
+        message.position.x = current_local_pos_.pose.position.x;
+        message.position.y = current_local_pos_.pose.position.y;
+        message.position.z = current_local_pos_.pose.position.z;
+//        message.velocity.x = 1.0;
+//        message.velocity.y = 1.0;
+//        message.velocity.z = 1.0;
+        message.yaw = yaw;
+        RCLCPP_INFO(this->get_logger(), "Stopping at x=%f, y=%f, z=%f", current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, current_local_pos_.pose.position.z);
+        position_target_pub_->publish(message);
+        is_stopped = true;
+    }
     void check_altitude(float altitude, float precision)
     {
+        check_stop(current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, altitude);
         while (rclcpp::ok() && abs(altitude - current_local_pos_.pose.position.z) > precision)
         {
+            check_stop(current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, altitude);
             RCLCPP_INFO(this->get_logger(), "Waiting for drone to reach altitude=%f with precision %f", altitude, precision);
             rclcpp::spin_some(this->get_node_base_interface());
             std::this_thread::sleep_for(1000ms);
@@ -321,8 +393,10 @@ private:
     }
     void check_position(float x, float y, float precision)
     {
+        check_stop(x, y, current_local_pos_.pose.position.z);
         while (rclcpp::ok() && euclid_distance(x, current_local_pos_.pose.position.x, y, current_local_pos_.pose.position.y) > precision)
         {
+            check_stop(x, y, current_local_pos_.pose.position.z);
             RCLCPP_INFO(this->get_logger(), "Waiting for drone to reach position x=%f, y=%f with precision %f", x, y, precision);
             rclcpp::spin_some(this->get_node_base_interface());
             std::this_thread::sleep_for(1000ms);
@@ -364,7 +438,7 @@ private:
     {
         char command[1024];
         // RCLCPP_INFO(this->get_logger(), "Python INSIDE x_start=%f, y_start=%f, x_end=%f, y_end=%f", x_start, y_start, x_end, y_end);
-        snprintf(command, sizeof(command), "python3 /home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/map_loader.py %s %s %s %s %s %s %s",
+        snprintf(command, sizeof(command), "python3 /home/lrs-ubuntu/Desktop/git-lrs/Hasprun_Dvorak_Svec_13/src/LRS-FEI-main/scripts/map_loader.py %s %s %s %s %s %s %s",
                                                 "map_",
                                                 altitude.c_str(),
                                                 std::to_string((int) (x_start*100/5)).c_str(), 
@@ -383,7 +457,32 @@ private:
             RCLCPP_ERROR(this->get_logger(), "Error executing the python script");
         }
         
-        return "/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/trajectory_points.csv";
+        return "/home/lrs-ubuntu/Desktop/git-lrs/Hasprun_Dvorak_Svec_13/trajectory_points.csv";
+    }
+    std::string generate_trajectory_circle(std::string altitude, float x_start, float y_start, float x_end, float y_end)
+    {
+        char command[1024];
+        // RCLCPP_INFO(this->get_logger(), "Python INSIDE x_start=%f, y_start=%f, x_end=%f, y_end=%f", x_start, y_start, x_end, y_end);
+        snprintf(command, sizeof(command), "python3 /home/lrs-ubuntu/Desktop/git-lrs/Hasprun_Dvorak_Svec_13/src/LRS-FEI-main/scripts/circle_move.py %s %s %s %s %s %s %s",
+                 "map_",
+                 altitude.c_str(),
+                 std::to_string((int) (x_start*100/5)).c_str(),
+                 std::to_string((int) (y_start*100/5)).c_str(),
+                 std::to_string((int) (x_end*100/5)).c_str(),
+                 std::to_string((int) (y_end*100/5)).c_str(),
+                 "trajectory_points.csv");
+
+        int return_code = system(command);
+        if(return_code == 0)
+        {
+            RCLCPP_INFO(this->get_logger(), "Python script executed successfully");
+        }
+        else
+        {
+            RCLCPP_ERROR(this->get_logger(), "Error executing the python script");
+        }
+
+        return "/home/lrs-ubuntu/Desktop/git-lrs/Hasprun_Dvorak_Svec_13/trajectory_points.csv";
     }
     void read_mission_csv(std::string path)
     {
@@ -478,6 +577,7 @@ private:
 
     rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr state_sub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr local_pos_pub_;
+//    rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr interrupt_pub_;
     rclcpp::Publisher<mavros_msgs::msg::PositionTarget>::SharedPtr position_target_pub_;
     rclcpp::Client<mavros_msgs::srv::CommandBool>::SharedPtr arming_client_;
     rclcpp::Client<mavros_msgs::srv::SetMode>::SharedPtr set_mode_client_;
@@ -485,9 +585,11 @@ private:
     rclcpp::Client<mavros_msgs::srv::CommandTOL>::SharedPtr land_client_;
 
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr local_pos_sub_;
+    rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr interrupt_sub_;
 
     mavros_msgs::msg::State current_state_;
     geometry_msgs::msg::PoseStamped current_local_pos_;
+    std_msgs::msg::Int32 current_interrupt_;
 
     struct TaskPoint{
         float x;
@@ -508,6 +610,7 @@ private:
     bool is_at_altitude = false;
     bool is_at_position = false;
     bool is_landed = false;
+    bool is_stopped = false;
     float precision_hard = 0.05;
     float precision_soft = 0.1;
     float precision_default = 0;
