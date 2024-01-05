@@ -4,17 +4,18 @@ from pprint import pprint
 from collections import deque
 import copy
 import numpy as np
-from PIL import Image
-import numpy as np
-from math import atan2
+import math
 import csv
 import sys
+from queue import PriorityQueue
 
 START_COL = "S"
 END_COL = "E"
 VISITED_COL = "x"
 OBSTACLE_COL = "#"
 PATH_COL = "@"
+ROW = 450
+COL = 450
 
 def scan_grid(grid, start=(0, 0)):
     """Scan all grid, so we can find a path from 'start' to any point"""
@@ -113,6 +114,9 @@ def convert_to_numeric(pixel_data):
     """
     return [[255 if pixel == '.' else 0 for pixel in row] for row in pixel_data]
 
+def convert_to_numeric_ones(pixel_data):
+    return [[1 if pixel == '.' else 0 for pixel in row] for row in pixel_data]
+
 def find_path(start, end, came_from):
     """Find the shortest path from start to end point"""
 
@@ -142,7 +146,7 @@ def draw_path(path, grid):
     return grid
 
 def make_safety_area_for_obstacles(grid):
-    offset = 5
+    offset = 3
     for idx_col, col in enumerate(grid):
         for idx_row, row in enumerate(col):
             if(row == 255):
@@ -219,9 +223,151 @@ def save_points_to_csv(points, csv_name):
             writer.writerow(point)
 
 
+# A structure to hold the necessary parameters
+class Cell:
+    def __init__(self, parent_i=-1, parent_j=-1, f=float('inf'), g=float('inf'), h=float('inf')):
+        self.parent_i = parent_i
+        self.parent_j = parent_j
+        self.f = f
+        self.g = g
+        self.h = h
+
+# A Utility Function to check whether given cell (row, col)
+# is a valid cell or not.
+def is_valid(row, col):
+    # Returns true if row number and column number
+    # are in range
+    return 0 <= row < ROW and 0 <= col < COL
+
+# A Utility Function to check whether the given cell is
+# blocked or not
+def is_unblocked(grid, row, col):
+    # Returns true if the cell is not blocked else false
+    return grid[row][col] == 1
+
+# A Utility Function to calculate the 'h' heuristics.
+def calculate_h_value(row, col, dest):
+    # Return using the distance formula
+    return math.sqrt((col - dest[1]) ** 2 + (row - dest[0]) ** 2)
+
+# A Function to find the shortest path between
+# a given source cell to a destination cell according
+# to A* Search Algorithm
+def a_star_search(grid, src, dest):
+    # If the source is out of range
+    if not is_valid(src[0], src[1]):
+        print("Source is invalid")
+        return
+
+    # If the destination is out of range
+    if not is_valid(dest[0], dest[1]):
+        print("Destination is invalid")
+        return
+
+    # Either the source or the destination is blocked
+    if not is_unblocked(grid, src[0], src[1]) or not is_unblocked(grid, dest[0], dest[1]):
+        print("Source or the destination is blocked")
+        return
+
+    # If the destination cell is the same as source cell
+    if src == dest:
+        print("We are already at the destination")
+        return
+
+    # Create a closed list and initialise it to false which
+    # means that no cell has been included yet. This closed
+    # list is implemented as a boolean 2D array.
+    closed_list = [[False for _ in range(COL)] for _ in range(ROW)]
+
+    # Declare a 2D array of structure to hold the details
+    # of that cell
+    cell_details = [[Cell() for _ in range(COL)] for _ in range(ROW)]
+
+    # Initialize parameters of the starting node
+    i, j = src
+    cell_details[i][j] = Cell(i, j, 0.0, 0.0, 0.0)
+
+    # Create an open list using PriorityQueue
+    open_list = PriorityQueue()
+
+    # Put the starting cell on the open list and set its 'f' as 0
+    open_list.put((0.0, src))
+
+    # We set this boolean value as false as initially
+    # the destination is not reached.
+    found_dest = False
+
+    while not open_list.empty():
+        f, (i, j) = open_list.get()
+
+        # Add this vertex to the closed list
+        closed_list[i][j] = True
+
+        # Generating all the 4 successors of this cell
+        successors = [
+            (-1, 0), (1, 0), (0, 1), (0, -1)
+        ]
+
+        for dx, dy in successors:
+            new_i, new_j = i + dx, j + dy
+
+            if is_valid(new_i, new_j):
+                # If the destination cell is the same as the current successor
+                if (new_i, new_j) == dest:
+                    cell_details[new_i][new_j].parent_i = i
+                    cell_details[new_i][new_j].parent_j = j
+                    print("The destination cell is found")
+                    output_path = trace_path(cell_details, dest)
+                    found_dest = True
+                    return output_path
+
+                # If the successor is not on the closed list and is unblocked
+                if not closed_list[new_i][new_j] and is_unblocked(grid, new_i, new_j):
+                    g_new = cell_details[i][j].g + 1.0
+                    h_new = calculate_h_value(new_i, new_j, dest)
+                    f_new = g_new + h_new
+
+                    # If the successor is not in the open list or the new f is less
+                    if cell_details[new_i][new_j].f == float('inf') or cell_details[new_i][new_j].f > f_new:
+                        open_list.put((f_new, (new_i, new_j)))
+
+                        # Update the details of this cell
+                        cell_details[new_i][new_j].f = f_new
+                        cell_details[new_i][new_j].g = g_new
+                        cell_details[new_i][new_j].h = h_new
+                        cell_details[new_i][new_j].parent_i = i
+                        cell_details[new_i][new_j].parent_j = j
+
+    # When the destination cell is not found and the open
+    # list is empty, then we conclude that we failed to
+    # reach the destination cell.
+    if not found_dest:
+        print("Failed to find the Destination Cell")
+
+# A Utility Function to trace the path from the source
+# to destination
+def trace_path(cell_details, dest):
+    print("\nThe Path is ", end="")
+    row, col = dest
+
+    path = []
+    output_path = []
+    while cell_details[row][col].parent_i != row or cell_details[row][col].parent_j != col:
+        path.append((row, col))
+        temp_row, temp_col = cell_details[row][col].parent_i, cell_details[row][col].parent_j
+        row, col = temp_row, temp_col
+
+    path.append((row, col))
+    while path:
+        p = path.pop()
+        print(f"-> {p}", end=" ")
+        output_path.append(p)
+    print()
+    return output_path
+
 def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
-    print("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm")
-    with open("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm", "rb") as file:
+    print("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm")
+    with open("/home/pdvorak/school/ros2_ws_hasprun_dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm", "rb") as file:
         byte_data = file.read()
         data = byte_data.decode("utf-8")
 
@@ -249,11 +395,17 @@ def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
     pixel_data = replace_values_in_array(pixel_data)
     filtered_data = [sublist for sublist in pixel_data if sublist]    
 
-    start_pos = (start_x, start_y)
-    end_pos = (end_x, end_y)
-    directions = scan_grid(filtered_data, start_pos)
+    src = (start_x, start_y)
+    dest = (end_x, end_y)
 
-    path1 = find_path(start_pos, end_pos, directions)
+
+    grid = convert_to_numeric_ones(filtered_data)
+
+    # print(grid)
+
+    path1 = a_star_search(grid, src, dest)
+
+    # path1 = find_path(start_pos, end_pos, directions)
 
     points = np.array(path1)
     simplified_points = douglas_peucker(points, 1)
@@ -270,6 +422,7 @@ def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
     write_pgm(grid_with_path1_converted, 'filtered_path_output.pgm')
 
     save_points_to_csv(simplified_points, csv_name)
+
 
 
 def main(argv):
