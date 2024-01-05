@@ -220,8 +220,8 @@ def save_points_to_csv(points, csv_name):
 
 
 def init(map_name, altitude, start_x, start_y, end_x, end_y, csv_name):
-    print("/home/lrs-ubuntu/Desktop/git-lrs/Hasprun_Dvorak_Svec_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm")
-    with open("/home/lrs-ubuntu/Desktop/git-lrs/Hasprun_Dvorak_Svec_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm", "rb") as file:
+    print("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm")
+    with open("/home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/" + map_name + "" + altitude + ".pgm", "rb") as file:
         byte_data = file.read()
         data = byte_data.decode("utf-8")
 
