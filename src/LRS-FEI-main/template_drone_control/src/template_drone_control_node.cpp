@@ -150,6 +150,7 @@ public:
             // RCLCPP_INFO(this->get_logger(), "Disarming drone");
             if (current_task_point.task == "circle")
             {
+                RCLCPP_INFO(this->get_logger(), "Received circle command");
                 std::string trajectory_path = generate_trajectory_circle(current_map, previous_x, previous_y, current_task_point.x, current_task_point.y);
                 read_points_csv(trajectory_path);
                 move_through_points(precision, current_task_point.x, current_task_point.y);
@@ -359,14 +360,14 @@ private:
     }
     void check_altitude(float altitude, float precision)
     {
-        check_stop(current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, altitude);
+//        check_stop(current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, altitude);
         while (rclcpp::ok() && abs(altitude - current_local_pos_.pose.position.z) > precision)
         {
-            check_stop(current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, altitude);
             RCLCPP_INFO(this->get_logger(), "Waiting for drone to reach altitude=%f with precision %f", altitude, precision);
             rclcpp::spin_some(this->get_node_base_interface());
             std::this_thread::sleep_for(1000ms);
         }
+        check_stop(current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, altitude);
         RCLCPP_INFO(this->get_logger(), "Drone reached altitude=%f with precision %f", altitude, precision);
     }
     void check_land()
@@ -393,14 +394,14 @@ private:
     }
     void check_position(float x, float y, float precision)
     {
-        check_stop(x, y, current_local_pos_.pose.position.z);
+//        check_stop(x, y, current_local_pos_.pose.position.z);
         while (rclcpp::ok() && euclid_distance(x, current_local_pos_.pose.position.x, y, current_local_pos_.pose.position.y) > precision)
         {
-            check_stop(x, y, current_local_pos_.pose.position.z);
             RCLCPP_INFO(this->get_logger(), "Waiting for drone to reach position x=%f, y=%f with precision %f", x, y, precision);
             rclcpp::spin_some(this->get_node_base_interface());
             std::this_thread::sleep_for(1000ms);
         }
+        check_stop(x, y, current_local_pos_.pose.position.z);
         RCLCPP_INFO(this->get_logger(), "Drone reached position x=%f, y=%f with precision %f", x, y, precision);
     }
     float euclid_distance(float x1, float x2, float y1, float y2)
@@ -617,8 +618,8 @@ private:
     // float yaw = 90;
     float yaw = 0;
     // 285 240
-    float start_x = 250*5/100;
-    float start_y = 300*5/100;
+    float start_x = (250-7)*5/100; //7
+    float start_y = (300)*5/100; //13
     float previous_x = 0;
     float previous_y = 0;
     bool first_check = false;
