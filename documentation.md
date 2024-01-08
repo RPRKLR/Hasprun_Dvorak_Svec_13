@@ -117,7 +117,41 @@ ros2 run template_drone_control template_drone_control_node
 
 In task 1 we were using the given flood fill algorithm for path planning. In the second task we had to decide between RRT or A* path planning, we decided that we are going to use A*.
 
-#### Theory
+## Theoretical Background of A* Algorithm
+
+A* (pronounced "A-star") is a computer algorithm that is widely used in pathfinding and graph traversal. The core idea behind A* is that it uses a best-first search and finds the least-cost path from a given initial node to a goal node (assuming one exists). It employs a heuristic approach which significantly speeds up the pathfinding process compared to algorithms that search blindly.
+
+### How A* Works
+
+1. **Heuristic Function**: A* uses a heuristic function `h(n)` to estimate the cost to reach the goal from node `n`. The effectiveness of the algorithm largely depends on the quality of this heuristic.
+
+2. **Cost Function**: It also considers `g(n)`, the cost to reach node `n` from the start node. The total cost function `f(n)` used by A* is a sum of `g(n)` and `h(n)`.
+
+3. **Priority Queue**: A* maintains a priority queue (often implemented as a min-heap) of nodes to be explored, prioritized by their `f(n)` values.
+
+4. **Exploration**: At each step, the node with the lowest `f(n)` is removed from the queue, and its neighbors are examined. For each neighbor, the algorithm calculates `f(n)` and updates the queue accordingly.
+
+5. **Optimality and Completeness**: When a node is expanded, if its `f(n)` value is greater than the `f(n)` of the goal node, it can be discarded. A* is both complete and optimal, provided that the heuristic function `h(n)` is admissible (never overestimates the actual cost) and consistent (monotonically increasing).
+
+
+## A* vs Flood Fill
+### A* Algorithm
+#### Advantages
+ * Optimal Pathfinding: Efficiently finds the shortest path in complex scenarios.
+ * Weighted Graphs: Can handle different terrain costs, useful in realistic pathfinding.
+ * Heuristic Function: Allows for faster search by estimating distances.
+#### Disadvantages
+ * Higher Complexity: More complex to implement than Flood Fill.
+ * Memory Usage: Can be memory-intensive, storing multiple paths and nodes.
+
+### Flood Fill Algorithm
+#### Advantages
+ * Simplicity: Easier to implement and understand.
+ * Efficient for Area Coverage: Ideal for filling connected regions, like in image processing.
+ * Lower Memory Usage: Typically uses less memory, especially in iterative implementations.
+#### Disadvantages
+ * Limited to Area Filling: Not suitable for pathfinding.
+ * Inefficient in Large, Complex Graphs: Less effective in scenarios requiring path optimization.
 
 https://www.geeksforgeeks.org/a-search-algorithm/
 
