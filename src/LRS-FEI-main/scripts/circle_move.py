@@ -29,19 +29,19 @@ def calculate_circle_points(src, radius=15, num_points=7):
     points = list(zip(x_coords, y_coords))
     output_path = []
 
-    print("\n----- CIRCLE ------")
-    print("\nThe Path is ", end="")
+    # print("\n----- CIRCLE ------")
+    # print("\nThe Path is ", end="")
     for i, p in enumerate(points):
         if i == 0:
             first_point = p
-        print(f"-> {p} ", end=" ")
+        # print(f"-> {p} ", end=" ")
         output_path.append(p)
 
     # output_path.append((start_y, start_x))
     output_path.append(first_point)
     output_path.append((start_x, start_y))
 
-    print(f"{output_path}")
+    # print(f"{output_path}")
 
     return output_path
 

@@ -167,8 +167,11 @@ public:
             if (!is_at_position)
             {
                 std::string trajectory_path = generate_trajectory(current_map, previous_x, previous_y, current_task_point.x, current_task_point.y);
-                read_points_csv(trajectory_path);
-                move_through_points(precision, current_task_point.x, current_task_point.y);
+                if(trajectory_path != "EMPTY")
+                {
+                    read_points_csv(trajectory_path);
+                    move_through_points(precision, current_task_point.x, current_task_point.y);
+                }
                 is_at_position = true;
             }
             if (is_at_altitude && is_at_position)
@@ -360,14 +363,14 @@ private:
     }
     void check_altitude(float altitude, float precision)
     {
-//        check_stop(current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, altitude);
+        check_stop(current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, altitude);
         while (rclcpp::ok() && abs(altitude - current_local_pos_.pose.position.z) > precision)
         {
+            check_stop(current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, altitude);
             RCLCPP_INFO(this->get_logger(), "Waiting for drone to reach altitude=%f with precision %f", altitude, precision);
             rclcpp::spin_some(this->get_node_base_interface());
             std::this_thread::sleep_for(1000ms);
         }
-        check_stop(current_local_pos_.pose.position.x, current_local_pos_.pose.position.y, altitude);
         RCLCPP_INFO(this->get_logger(), "Drone reached altitude=%f with precision %f", altitude, precision);
     }
     void check_land()
@@ -394,14 +397,14 @@ private:
     }
     void check_position(float x, float y, float precision)
     {
-//        check_stop(x, y, current_local_pos_.pose.position.z);
+        check_stop(x, y, current_local_pos_.pose.position.z);
         while (rclcpp::ok() && euclid_distance(x, current_local_pos_.pose.position.x, y, current_local_pos_.pose.position.y) > precision)
         {
+            check_stop(x, y, current_local_pos_.pose.position.z);
             RCLCPP_INFO(this->get_logger(), "Waiting for drone to reach position x=%f, y=%f with precision %f", x, y, precision);
             rclcpp::spin_some(this->get_node_base_interface());
             std::this_thread::sleep_for(1000ms);
         }
-        check_stop(x, y, current_local_pos_.pose.position.z);
         RCLCPP_INFO(this->get_logger(), "Drone reached position x=%f, y=%f with precision %f", x, y, precision);
     }
     float euclid_distance(float x1, float x2, float y1, float y2)
@@ -437,6 +440,10 @@ private:
     }
     std::string generate_trajectory(std::string altitude, float x_start, float y_start, float x_end, float y_end)
     {
+        if(euclid_distance(x_start, x_end, y_start, y_end) <= precision_soft)
+        {
+            return "EMPTY";
+        }
         char command[1024];
         // RCLCPP_INFO(this->get_logger(), "Python INSIDE x_start=%f, y_start=%f, x_end=%f, y_end=%f", x_start, y_start, x_end, y_end);
         snprintf(command, sizeof(command), "python3 /home/lrs-ubuntu/LRS/Hasprun_Dvorak_13/src/LRS-FEI-main/scripts/map_loader.py %s %s %s %s %s %s %s",
@@ -508,6 +515,9 @@ private:
             tmp_task_point.x = std::stof(split_parts[1]);
             tmp_task_point.y = std::stof(split_parts[0]);
             tmp_task_point.z = std::stof(split_parts[2]);
+//            tmp_task_point.x = std::stof(split_parts[0]);
+//            tmp_task_point.y = std::stof(split_parts[1]);
+//            tmp_task_point.z = std::stof(split_parts[2]);
 
             tmp_task_point.precision = split_parts[3];
             std::string::iterator end_pos = std::remove(tmp_task_point.precision.begin(), tmp_task_point.precision.end(), ' ');
@@ -618,8 +628,10 @@ private:
     // float yaw = 90;
     float yaw = 0;
     // 285 240
-    float start_x = (250-7)*5/100; //7
+    float start_x = (250)*5/100; //7
     float start_y = (300)*5/100; //13
+//    float start_x = 1.50;
+//    float start_y = 13.60;
     float previous_x = 0;
     float previous_y = 0;
     bool first_check = false;
